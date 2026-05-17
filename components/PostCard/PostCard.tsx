@@ -87,6 +87,15 @@ export default function PostCard({ post, onClick, showUpvotes, status = "none" }
       tabIndex={onClick ? 0 : undefined}
     >
       <div className={styles.titleArea}>
+        {post.image && (
+          <img
+            src={post.image}
+            alt=""
+            className={styles.postImage}
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         <h2 className={styles.title}>{post.title}</h2>
       </div>
 
