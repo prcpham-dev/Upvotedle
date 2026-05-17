@@ -2,7 +2,11 @@ export {
   DEFAULT_MAX_UPVOTES,
   MAX_UPVOTES_LIMIT,
 } from "./constants";
-export { DAILY_SUBREDDITS } from "./dailySubreddits";
+export {
+  DAILY_ROUND_COUNT,
+  DAILY_SUBREDDITS,
+  selectDailySubreddits,
+} from "./dailySubreddits";
 export { fetchDailyPuzzle } from "./fetchDaily";
 export { fetchGameRound } from "./fetchRound";
 export {
