@@ -65,3 +65,35 @@
   background-color: #555555;
   cursor: not-allowed;
 }
+
+.dailyButton {
+  background-color: #22c55e;
+  margin-bottom: 32px;
+}
+
+.dailyButton:hover {
+  background-color: #16a34a;
+}
+
+.iconMargin {
+  margin-left: 8px;
+}
+
+.dividerContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background-color: #333333;
+}
+
+.dividerText {
+  margin: 0 16px;
+  color: #666666;
+  font-size: 14px;
+  font-weight: bold;
+}

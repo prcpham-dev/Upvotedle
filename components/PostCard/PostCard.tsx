@@ -12,24 +12,38 @@ interface PostCardProps {
   status?: "winner" | "loser" | "none";
 }
 
+// Moved outside to prevent recreation on every re-render
+const formatUpvotes = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return num.toString();
+};
+
 export default function PostCard({ post, onClick, showUpvotes, status = "none" }: PostCardProps) {
 
-  const formatUpvotes = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-    return num.toString();
-  };
+  // Clean array filtering to build class names without trailing/missing spaces
+  const cardClasses = [
+    styles.card,
+    "flex flex-col items-center justify-center",
+    showUpvotes && status === "winner" && styles.winner,
+    showUpvotes && status === "loser" && styles.loser,
+  ].filter(Boolean).join(" ");
 
-  let cardClass = styles.card;
-  if (showUpvotes) {
-    if (status === "winner") cardClass += ` ${styles.winner}`;
-    if (status === "loser") cardClass += ` ${styles.loser}`;
-  }
+  // Handle keyboard accessibility for screen readers/keyboard users
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (onClick && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <div
-      className={`${cardClass} flex flex-col`}
+      className={cardClasses}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       <h2 className={styles.title}>{post.title}</h2>
 
