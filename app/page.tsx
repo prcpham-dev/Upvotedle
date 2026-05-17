@@ -129,17 +129,18 @@ export default function Home() {
       const pool = [...DAILY_SUBREDDITS];
       const fallbackPool = pickSeededSample(pool, pool.length, resolvedSeed);
       
-      // If custom sub is provided, try it first. Otherwise, just use the shuffled list.
-      let candidatesList: string[] = [];
-      if (isCustomSubProvided) {
-        candidatesList = [subreddit.trim(), ...fallbackPool];
-      } else {
-        candidatesList = fallbackPool;
-      }
-      setSubreddits(candidatesList);
-
       const numRounds = endless ? 3 : 10;
       const query = buildUpvoteLimitsQuery(limits);
+
+      // If custom sub is provided, play strictly from that subreddit. Otherwise, use the shuffled list.
+      let candidatesList: string[] = [];
+      if (isCustomSubProvided) {
+        candidatesList = Array(numRounds).fill(subreddit.trim());
+        setSubreddits([subreddit.trim()]);
+      } else {
+        candidatesList = fallbackPool;
+        setSubreddits(fallbackPool);
+      }
       
       const payload: RoundData[] = [];
       let candidateIndex = 0;
