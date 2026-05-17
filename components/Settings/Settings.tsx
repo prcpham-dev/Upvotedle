@@ -67,8 +67,7 @@ export default function Settings({
         </div>
 
         <p className={styles.description}>
-          Only posts with up to this many upvotes can appear in a round. Lower
-          values favor smaller posts; higher values include more popular posts.
+          Only posts with up to this many upvotes can appear in a round.
         </p>
 
         <label className={styles.label} htmlFor="max-upvotes">
