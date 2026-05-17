@@ -10,58 +10,56 @@ export default function Home() {
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleStartGame = async (subreddit: string) => {
+  const handleStartDaily = async () => {
     setGameState("loading");
     setErrorMessage("");
 
     try {
-      const response = await fetch(`https://www.reddit.com/r/${subreddit}/top.json?t=month&limit=25`);
+      const response = await fetch("/api/daily");
       if (!response.ok) {
-        throw new Error("Failed to fetch subreddit data. Please check the spelling.");
+        throw new Error("Failed to fetch daily puzzle data.");
       }
 
       const json = await response.json();
-      const posts = json.data.children;
 
-      if (posts.length < 2) {
-        throw new Error("Not enough posts found in this subreddit.");
+      if (json.error) {
+        throw new Error(json.error);
       }
 
-      const validPosts = posts.filter((p: any) => !p.data.stickied && p.data.title);
+      setRounds(json);
+      setGameState("playing");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || "An unexpected error occurred.");
+      setGameState("setup");
+    }
+  };
 
-      const numRounds = Math.floor(validPosts.length / 2);
+  const handleStartCustom = async (subreddit: string) => {
+    setGameState("loading");
+    setErrorMessage("");
 
-      if (numRounds === 0) {
-        throw new Error("Not enough valid posts found.");
+    try {
+      const promises = [];
+      const numRounds = 10;
+      for (let i = 1; i <= numRounds; i++) {
+        promises.push(
+          fetch(`/api/round?subreddit=${encodeURIComponent(subreddit)}&round=${i}`).then(res => {
+            if (!res.ok) throw new Error("Failed to fetch subreddit data. Please check the spelling.");
+            return res.json();
+          })
+        );
       }
 
-      const shuffledPosts = [...validPosts].sort(() => 0.5 - Math.random());
+      const results = await Promise.all(promises);
 
-      const generatedRounds: RoundData[] = [];
-
-      const maxRounds = Math.min(10, numRounds);
-
-      for (let i = 0; i < maxRounds; i++) {
-        const postAData = shuffledPosts[i * 2].data;
-        const postBData = shuffledPosts[i * 2 + 1].data;
-
-        generatedRounds.push({
-          round: i + 1,
-          subreddit: `r/${subreddit}`,
-          postA: {
-            title: postAData.title,
-            upvotes: postAData.score,
-          },
-          postB: {
-            title: postBData.title,
-            upvotes: postBData.score,
-          }
-        });
-      }
+      const generatedRounds: RoundData[] = results.map(res => {
+        if (res.error) throw new Error(res.error);
+        return res[0];
+      });
 
       setRounds(generatedRounds);
       setGameState("playing");
-
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || "An unexpected error occurred.");
@@ -76,7 +74,12 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      {gameState === "setup" && <GameSetup onStart={handleStartGame} />}
+      {gameState === "setup" && (
+        <GameSetup
+          onStartDaily={handleStartDaily}
+          onStartCustom={handleStartCustom}
+        />
+      )}
 
       {gameState === "loading" && (
         <div className="flex flex-col items-center justify-center">
@@ -84,21 +87,6 @@ export default function Home() {
           <p className="mt-4 text-xl text-gray-300">Fetching Reddit Posts...</p>
         </div>
       )}
-
-      {gameState === "error" && (
-        <div className="flex flex-col items-center justify-center max-w-md text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-          <p className="text-gray-400 mb-8">{errorMessage}</p>
-          <button
-            onClick={handlePlayAgain}
-            className="px-6 py-3 bg-[#ff4500] text-white font-bold rounded-lg hover:bg-[#ff5722]"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
       {gameState === "playing" && (
         <GameBoard rounds={rounds} onPlayAgain={handlePlayAgain} />
       )}

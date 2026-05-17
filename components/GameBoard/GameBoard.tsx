@@ -32,7 +32,7 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
         <p className={styles.gameOverScore}>
           You got {correctCount} out of {rounds.length} correct.
         </p>
-        <button onClick={onPlayAgain} className={styles.nextButton}>
+        <button onClick={onPlayAgain} className={styles.gameOverButton}>
           Play Again
         </button>
       </div>
@@ -69,38 +69,53 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
 
     if (thisPost.upvotes > otherPost.upvotes) return "winner";
     if (thisPost.upvotes < otherPost.upvotes) return "loser";
-    return "winner"; // If tie, both are winners
+    return "winner";
   };
 
   return (
-    <div className={`${styles.container} flex flex-col`}>
-      <RoundIndicator rounds={roundStatuses} />
-
-      <div className="flex flex-col items-center">
-        <h2 className="text-2xl font-bold text-gray-400 mb-2">Round {currentRound.round}</h2>
-        <p className="text-lg text-gray-500 mb-8">{currentRound.subreddit}</p>
+    <div className={`fixed inset-0 flex flex-col md:flex-row overflow-hidden ${styles.boardRoot}`}>
+      {/* Top Round Indicator */}
+      <div className="absolute top-8 left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto">
+          <RoundIndicator rounds={roundStatuses} />
+        </div>
       </div>
 
-      {hasGuessed && (
-        <div className={styles.resultText}>
-          {roundStatuses[currentRoundIndex] === "correct" ? (
-            <span className={styles.resultCorrect}>Correct!</span>
-          ) : (
-            <span className={styles.resultWrong}>Wrong!</span>
+      {/* Center Overlay */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-40">
+        <div className={`pointer-events-auto ${styles.centerCircle}`}>
+          <h2 className={styles.roundText}>Round {currentRound.round}</h2>
+          <p className={styles.subredditText}>{currentRound.subreddit}</p>
+
+          <div className={styles.vsText}>VS</div>
+
+          {hasGuessed && (
+            <div className={styles.resultContainer}>
+              {roundStatuses[currentRoundIndex] === "correct" ? (
+                <span className={styles.resultCorrect}>Correct!</span>
+              ) : (
+                <span className={styles.resultWrong}>Wrong!</span>
+              )}
+              <button onClick={handleNextRound} className={styles.nextRoundButton}>
+                Next Round
+              </button>
+            </div>
           )}
         </div>
-      )}
+      </div>
 
-      <div className={`${styles.cardsContainer} flex flex-col md:flex-row items-center justify-center`}>
+      {/* Left Card */}
+      <div className={`flex-1 w-full h-full relative ${styles.leftCard}`}>
         <PostCard
           post={postA}
           onClick={() => handleGuess("A")}
           showUpvotes={hasGuessed}
           status={getPostStatus("A")}
         />
+      </div>
 
-        <div className={styles.vsText}>VS</div>
-
+      {/* Right Card */}
+      <div className="flex-1 w-full h-full relative">
         <PostCard
           post={postB}
           onClick={() => handleGuess("B")}
@@ -108,12 +123,6 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
           status={getPostStatus("B")}
         />
       </div>
-
-      {hasGuessed && (
-        <button onClick={handleNextRound} className={styles.nextButton}>
-          Next Round
-        </button>
-      )}
     </div>
   );
 }

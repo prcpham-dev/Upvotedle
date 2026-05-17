@@ -1,60 +1,124 @@
-.container {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px;
+/* Board Root */
+.boardRoot {
+  background-color: #121212;
 }
 
-.cardsContainer {
-  gap: 32px;
-  margin-top: 40px;
-  margin-bottom: 40px;
+/* Left card divider */
+.leftCard {
+  border-bottom: 1px solid #1f2937;
+}
+
+@media (min-width: 768px) {
+  .leftCard {
+    border-bottom: none;
+    border-right: 1px solid #1f2937;
+  }
+}
+
+/* Center Overlay Styles */
+.centerCircle {
+  background-color: #1a1a1b;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  border: 3px solid #121212;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 8rem;
+  height: 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: auto;
+  gap: 0.1rem;
+}
+
+.roundText {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1;
+}
+
+.subredditText {
+  font-size: 0.90rem;
+  color: #6b7280;
+  margin: 0;
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
 }
 
 .vsText {
-  font-size: 24px;
-  font-weight: bold;
-  color: #555555;
-  margin: 0 16px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0.1rem 0;
+  line-height: 1;
 }
 
-.nextButton {
-  padding: 16px 32px;
-  font-size: 18px;
-  font-weight: bold;
-  background-color: #ffffff;
-  color: #000000;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.1s ease;
-  margin: 0 auto;
-  display: block;
-}
-
-.nextButton:hover {
-  background-color: #e0e0e0;
-}
-
-.nextButton:active {
-  transform: scale(0.98);
-}
-
-.resultText {
-  font-size: 28px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 24px;
+.resultContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  animation: zoomFadeIn 0.3s ease-out;
 }
 
 .resultCorrect {
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #22c55e;
+  margin: 0;
+  line-height: 1;
 }
 
 .resultWrong {
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #ef4444;
+  margin: 0;
+  line-height: 1;
 }
 
+.nextRoundButton {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background-color: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.nextRoundButton:hover {
+  background-color: #e5e7eb;
+}
+
+.nextRoundButton:active {
+  transform: scale(0.95);
+}
+
+@keyframes zoomFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Game Over Styles */
 .gameOverContainer {
   text-align: center;
   padding: 64px 0;
@@ -71,4 +135,26 @@
   font-size: 24px;
   color: #a0a0a0;
   margin-bottom: 48px;
+}
+
+.gameOverButton {
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  margin: 0 auto;
+  display: block;
+}
+
+.gameOverButton:hover {
+  background-color: #e0e0e0;
+}
+
+.gameOverButton:active {
+  transform: scale(0.98);
 }
