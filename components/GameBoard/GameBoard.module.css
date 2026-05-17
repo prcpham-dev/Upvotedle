@@ -15,106 +15,118 @@
   }
 }
 
-/* Center Overlay Styles */
-.centerCircle {
-  background-color: #1a1a1b;
-  padding: 0.75rem;
-  border-radius: 9999px;
-  border: 3px solid #121212;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  width: 8rem;
-  height: 8rem;
+/* Round Indicator Positioning */
+.roundIndicatorContainer {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .roundIndicatorContainer {
+    top: 1rem;
+    left: 0;
+    right: 0;
+    transform: none;
+    justify-content: center;
+  }
+}
+
+/* Center Overlay Layout */
+.centerOverlayLayout {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.centerOverlaySideText {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  pointer-events: auto;
-  gap: 0.1rem;
+  width: 80px;
 }
 
 .roundText {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: bold;
   color: #9ca3af;
-  margin: 0;
-  line-height: 1;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .subredditText {
-  font-size: 0.90rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: #6b7280;
-  margin: 0;
-  max-width: 80px;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  max-width: 80px;
 }
 
-.vsText {
-  font-size: 1.1rem;
-  font-weight: 900;
-  color: #ffffff;
-  margin: 0.1rem 0;
-  line-height: 1;
-}
-
-.resultContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  animation: zoomFadeIn 0.3s ease-out;
-}
-
-.resultCorrect {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #22c55e;
-  margin: 0;
-  line-height: 1;
-}
-
-.resultWrong {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #ef4444;
-  margin: 0;
-  line-height: 1;
-}
-
-.nextRoundButton {
-  padding: 0.25rem 0.65rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background-color: #ffffff;
-  color: #000000;
-  border: none;
+/* Center Circle Styles */
+.centerCircle {
+  background-color: #1a1a1b;
+  padding: 0.5rem;
   border-radius: 9999px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transition: background-color 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .centerOverlaySideText {
+    display: none; /* Hide side text on desktop if you want, or show it. Let's show it, just scale circle */
+  }
+  
+  .centerCircle {
+    width: 5rem;
+    height: 5rem;
+    padding: 0.75rem;
+  }
+}
+
+.centerCircle[role="button"] {
   cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.2s ease;
-  white-space: nowrap;
-  line-height: 1.4;
 }
 
-.nextRoundButton:hover {
-  background-color: #e5e7eb;
+.centerCircle[role="button"]:hover {
+  transform: scale(1.1);
 }
 
-.nextRoundButton:active {
+.centerCircle[role="button"]:active {
   transform: scale(0.95);
 }
 
-@keyframes zoomFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
+.circleCorrect {
+  background-color: var(--color-correct);
+}
 
-  to {
-    opacity: 1;
-    transform: scale(1);
+.circleWrong {
+  background-color: var(--color-wrong);
+}
+
+.vsText {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .vsText {
+    font-size: 1.1rem;
   }
 }
 
@@ -157,4 +169,19 @@
 
 .gameOverButton:active {
   transform: scale(0.98);
+}
+
+.fadeIn {
+  animation: fadeInCards 0.5s ease-out;
+}
+
+@keyframes fadeInCards {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

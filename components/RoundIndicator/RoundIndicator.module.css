@@ -1,21 +1,62 @@
 .container {
   width: 100%;
   padding: 16px 0;
-  margin-bottom: 24px;
+  margin-bottom: 8px;
+}
+
+.roundInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 2px;
+}
+
+.roundLabel {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #bfc7d8;
+  line-height: 1.2;
+}
+
+.subredditLabel {
+  font-size: 1rem;
+  color: #bfc7d8;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .indicatorList {
   list-style: none;
   padding: 0;
   margin: 0;
-  gap: 12px;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .indicatorList {
+    flex-direction: row;
+    gap: 12px;
+  }
 }
 
 .circle {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .circle {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 .unplayed {
@@ -23,13 +64,13 @@
 }
 
 .correct {
-  background-color: #22c55e; /* green */
+  background-color: var(--color-correct);
   transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-correct) 50%, transparent);
 }
 
 .wrong {
-  background-color: #ef4444; /* red */
+  background-color: var(--color-wrong);
   transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-wrong) 50%, transparent);
 }

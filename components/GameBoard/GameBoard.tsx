@@ -74,38 +74,47 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
 
   return (
     <div className={`fixed inset-0 flex flex-col md:flex-row overflow-hidden ${styles.boardRoot}`}>
-      {/* Top Round Indicator */}
-      <div className="absolute top-8 left-0 right-0 z-50 flex justify-center pointer-events-none">
+      {/* Round Indicator Container */}
+      <div className={`pointer-events-none z-50 ${styles.roundIndicatorContainer}`}>
         <div className="pointer-events-auto">
           <RoundIndicator rounds={roundStatuses} />
         </div>
       </div>
 
       {/* Center Overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-40">
-        <div className={`pointer-events-auto ${styles.centerCircle}`}>
-          <h2 className={styles.roundText}>Round {currentRound.round}</h2>
-          <p className={styles.subredditText}>{currentRound.subreddit}</p>
+      <div className={`absolute inset-0 flex items-center justify-center pointer-events-none z-40`}>
+        <div className={styles.centerOverlayLayout}>
+          <div className={styles.centerOverlaySideText}>
+            <span className={styles.roundText}>Round {currentRound.round}</span>
+          </div>
 
-          <div className={styles.vsText}>VS</div>
-
-          {hasGuessed && (
-            <div className={styles.resultContainer}>
-              {roundStatuses[currentRoundIndex] === "correct" ? (
-                <span className={styles.resultCorrect}>Correct!</span>
-              ) : (
-                <span className={styles.resultWrong}>Wrong!</span>
-              )}
-              <button onClick={handleNextRound} className={styles.nextRoundButton}>
-                Next Round
-              </button>
+          {hasGuessed ? (
+            <div
+              className={`pointer-events-auto ${styles.centerCircle} ${
+                roundStatuses[currentRoundIndex] === "correct"
+                  ? styles.circleCorrect
+                  : styles.circleWrong
+              }`}
+              onClick={handleNextRound}
+              role="button"
+              tabIndex={0}
+            >
+              <span className={styles.vsText}>Next</span>
+            </div>
+          ) : (
+            <div className={`pointer-events-auto ${styles.centerCircle}`}>
+              <span className={styles.vsText}>VS</span>
             </div>
           )}
+
+          <div className={styles.centerOverlaySideText}>
+            <span className={styles.subredditText}>{currentRound.subreddit}</span>
+          </div>
         </div>
       </div>
 
       {/* Left Card */}
-      <div className={`flex-1 w-full h-full relative ${styles.leftCard}`}>
+      <div key={`left-${currentRoundIndex}`} className={`flex-1 w-full h-full relative ${styles.leftCard} ${styles.fadeIn}`}>
         <PostCard
           post={postA}
           onClick={() => handleGuess("A")}
@@ -115,7 +124,7 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
       </div>
 
       {/* Right Card */}
-      <div className="flex-1 w-full h-full relative">
+      <div key={`right-${currentRoundIndex}`} className={`flex-1 w-full h-full relative ${styles.fadeIn}`}>
         <PostCard
           post={postB}
           onClick={() => handleGuess("B")}

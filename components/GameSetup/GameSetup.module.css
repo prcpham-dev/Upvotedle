@@ -67,12 +67,12 @@
 }
 
 .dailyButton {
-  background-color: #22c55e;
+  background-color: var(--color-correct);
   margin-bottom: 32px;
 }
 
 .dailyButton:hover {
-  background-color: #16a34a;
+  filter: brightness(0.9);
 }
 
 .iconMargin {

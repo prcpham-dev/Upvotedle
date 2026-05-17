@@ -11,8 +11,8 @@ interface RoundIndicatorProps {
 
 export default function RoundIndicator({ rounds }: RoundIndicatorProps) {
   return (
-    <div className={`${styles.container} flex flex-row items-center justify-center`}>
-      <ul className={`${styles.indicatorList} flex flex-row`}>
+    <div className={styles.container}>
+      <ul className={styles.indicatorList}>
         {rounds.map((status, index) => (
           <li
             key={index}
