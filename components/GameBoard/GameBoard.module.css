@@ -47,7 +47,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 80px;
+  width: 150px;
 }
 
 .roundText {
@@ -66,7 +66,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80px;
+  max-width: 150px;
 }
 
 /* Center Circle Styles */
@@ -173,6 +173,41 @@
 
 .fadeIn {
   animation: fadeInCards 0.5s ease-out;
+}
+
+/* Desktop Header Info */
+.desktopHeaderInfo {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktopHeaderInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    background-color: rgba(26, 26, 27, 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid #333333;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+  }
+}
+
+.desktopRoundText {
+  color: var(--color-correct); /* Reddit theme orange */
+}
+
+.desktopSeparator {
+  color: #555555;
+}
+
+.desktopSubredditText {
+  color: #ffffff;
 }
 
 @keyframes fadeInCards {

@@ -71,9 +71,15 @@
   margin-top: 0;
 }
 
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
 .input {
   width: 100%;
   padding: 14px;
+  padding-right: 48px;
   font-size: 18px;
   background-color: #2a2a2a;
   border: 2px solid #3a3a3a;
@@ -81,11 +87,59 @@
   color: #ffffff;
   box-sizing: border-box;
   transition: border-color 0.3s ease;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .input:focus {
   outline: none;
-  border-color: #ff4500;
+}
+
+.spinnerButtons {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  width: 38px;
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid #3a3a3a;
+  background-color: #202020;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  overflow: hidden;
+}
+
+.spinnerButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #a0a0a0;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.spinnerButton:first-child {
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.spinnerButton:hover {
+  background-color: #2e2e2e;
+  color: #ffffff;
+}
+
+.spinnerButton:active {
+  background-color: #3a3a3a;
 }
 
 .hint {

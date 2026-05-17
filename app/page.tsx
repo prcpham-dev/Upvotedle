@@ -13,6 +13,8 @@ import {
   type UpvoteLimits,
 } from "@/lib/settings";
 import { RoundData } from "@/types/types";
+import { DAILY_SUBREDDITS } from "@/lib/reddit/dailySubreddits";
+import { pickSeededSample } from "@/lib/reddit/seededRandom";
 
 const DEFAULT_LIMITS: UpvoteLimits = {
   minUpvotes: DEFAULT_MIN_UPVOTES,
@@ -32,6 +34,8 @@ export default function Home() {
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [upvoteLimits, setUpvoteLimits] = useState<UpvoteLimits>(DEFAULT_LIMITS);
+  const [subreddits, setSubreddits] = useState<string[]>([]);
+  const [isEndless, setIsEndless] = useState(false);
 
   useEffect(() => {
     setUpvoteLimits(loadUpvoteLimits());
@@ -45,6 +49,8 @@ export default function Home() {
   const handleStartDaily = async () => {
     setGameState("loading");
     setErrorMessage("");
+    setIsEndless(false);
+    setSubreddits([]);
 
     const limits = loadUpvoteLimits();
     setUpvoteLimits(limits);
@@ -72,19 +78,37 @@ export default function Home() {
     }
   };
 
-  const handleStartCustom = async (subreddit: string) => {
+  const handleStartCustom = async (
+    subsList: string[],
+    endless: boolean,
+    seed: number | null,
+  ) => {
     setGameState("loading");
     setErrorMessage("");
+    setIsEndless(endless);
 
     const limits = loadUpvoteLimits();
     setUpvoteLimits(limits);
 
     try {
-      const numRounds = 10;
+      let activeSubredditsList: string[] = [];
+      if (seed !== null) {
+        // Random (Seeded) Mode: shuffle the predefined list of DAILY_SUBREDDITS using seed
+        const pool = [...DAILY_SUBREDDITS];
+        activeSubredditsList = pickSeededSample(pool, pool.length, seed);
+      } else {
+        // Custom Subreddit Mode
+        activeSubredditsList = subsList;
+      }
+      setSubreddits(activeSubredditsList);
+
+      const numRounds = endless ? 3 : 10;
       const query = buildUpvoteLimitsQuery(limits);
-      const promises = Array.from({ length: numRounds }, (_, index) =>
-        fetch(
-          `/api/round?subreddit=${encodeURIComponent(subreddit)}&round=${index + 1}&${query}`,
+      const promises = Array.from({ length: numRounds }, (_, index) => {
+        // Pick subreddits sequentially (with modulo wrapping) for deterministic play!
+        const selectedSub = activeSubredditsList[index % activeSubredditsList.length];
+        return fetch(
+          `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${index + 1}&${query}`,
         ).then((res) => {
           if (!res.ok) {
             throw new Error(
@@ -92,8 +116,8 @@ export default function Home() {
             );
           }
           return res.json();
-        }),
-      );
+        });
+      });
 
       const results = await Promise.all(promises);
 
@@ -116,6 +140,8 @@ export default function Home() {
   const handlePlayAgain = () => {
     setGameState("setup");
     setRounds([]);
+    setSubreddits([]);
+    setIsEndless(false);
   };
 
   return (
@@ -138,7 +164,13 @@ export default function Home() {
       )}
 
       {gameState === "playing" && (
-        <GameBoard rounds={rounds} onPlayAgain={handlePlayAgain} />
+        <GameBoard
+          rounds={rounds}
+          onPlayAgain={handlePlayAgain}
+          isEndless={isEndless}
+          subreddits={subreddits}
+          upvoteLimits={upvoteLimits}
+        />
       )}
 
       {gameState === "error" && (
