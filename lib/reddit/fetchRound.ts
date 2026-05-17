@@ -1,3 +1,4 @@
+import { DEFAULT_MAX_UPVOTES } from "./constants";
 import { isEligiblePost } from "./filters";
 import type {
   FetchRoundOptions,
@@ -84,9 +85,17 @@ export async function fetchGameRound(
   subreddit: string,
   options: FetchRoundOptions = {},
 ): Promise<GameRoundPayload> {
+  const maxUpvotes = options.maxUpvotes ?? DEFAULT_MAX_UPVOTES;
   const url = buildListingUrl(subreddit, options);
   const posts = await fetchListing(url);
-  const eligible = posts.filter(isEligiblePost);
+  const eligible = posts.filter((post) => isEligiblePost(post, maxUpvotes));
+
+  if (eligible.length < 2) {
+    throw new Error(
+      `Not enough eligible posts at or below ${maxUpvotes} upvotes (found ${eligible.length})`,
+    );
+  }
+
   const [postA, postB] = pickRandom(eligible, 2);
 
   const round: GameRound = {

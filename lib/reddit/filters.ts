@@ -19,6 +19,17 @@ const MEDIA_DOMAINS = new Set([
 
 const IMAGE_URL_PATTERN = /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i;
 
+export function getPostUpvotes(post: RedditPostRaw): number {
+  return post.ups ?? post.score ?? 0;
+}
+
+export function isWithinUpvoteLimit(
+  post: RedditPostRaw,
+  maxUpvotes: number,
+): boolean {
+  return getPostUpvotes(post) <= maxUpvotes;
+}
+
 export function isDeletedOrRemoved(post: RedditPostRaw): boolean {
   const title = post.title?.trim() ?? "";
   if (
@@ -64,7 +75,10 @@ export function isMediaHeavy(post: RedditPostRaw): boolean {
   return false;
 }
 
-export function isEligiblePost(post: RedditPostRaw): boolean {
+export function isEligiblePost(
+  post: RedditPostRaw,
+  maxUpvotes?: number,
+): boolean {
   if (!post.title?.trim()) {
     return false;
   }
@@ -72,6 +86,9 @@ export function isEligiblePost(post: RedditPostRaw): boolean {
     return false;
   }
   if (isNsfw(post) || isDeletedOrRemoved(post) || isMediaHeavy(post)) {
+    return false;
+  }
+  if (maxUpvotes !== undefined && !isWithinUpvoteLimit(post, maxUpvotes)) {
     return false;
   }
   return true;

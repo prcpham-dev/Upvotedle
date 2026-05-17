@@ -47,4 +47,6 @@ export type FetchRoundOptions = {
   /** How many posts to pull before filtering (default: 100, max 100). */
   limit?: number;
   round?: number;
+  /** Only include posts with upvotes at or below this value (default: 1000). */
+  maxUpvotes?: number;
 };

@@ -1,21 +1,38 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import GameSetup from "@/components/GameSetup/GameSetup";
 import GameBoard from "@/components/GameBoard/GameBoard";
+import { DEFAULT_MAX_UPVOTES } from "@/lib/reddit/constants";
+import { loadMaxUpvotes, saveMaxUpvotes } from "@/lib/settings";
 import { RoundData } from "@/types/types";
 
 export default function Home() {
   const [gameState, setGameState] = useState<"setup" | "loading" | "playing" | "error">("setup");
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [maxUpvotes, setMaxUpvotes] = useState(DEFAULT_MAX_UPVOTES);
+
+  useEffect(() => {
+    setMaxUpvotes(loadMaxUpvotes());
+  }, []);
+
+  const handleMaxUpvotesChange = useCallback((value: number) => {
+    setMaxUpvotes(value);
+    saveMaxUpvotes(value);
+  }, []);
+
+  const buildMaxUpvotesQuery = useCallback(
+    () => `maxUpvotes=${encodeURIComponent(maxUpvotes)}`,
+    [maxUpvotes],
+  );
 
   const handleStartDaily = async () => {
     setGameState("loading");
     setErrorMessage("");
 
     try {
-      const response = await fetch("/api/daily");
+      const response = await fetch(`/api/daily?${buildMaxUpvotesQuery()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch daily puzzle data.");
       }
@@ -28,9 +45,11 @@ export default function Home() {
 
       setRounds(json);
       setGameState("playing");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMessage(err.message || "An unexpected error occurred.");
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
       setGameState("setup");
     }
   };
@@ -40,29 +59,35 @@ export default function Home() {
     setErrorMessage("");
 
     try {
-      const promises = [];
       const numRounds = 10;
-      for (let i = 1; i <= numRounds; i++) {
-        promises.push(
-          fetch(`/api/round?subreddit=${encodeURIComponent(subreddit)}&round=${i}`).then(res => {
-            if (!res.ok) throw new Error("Failed to fetch subreddit data. Please check the spelling.");
-            return res.json();
-          })
-        );
-      }
+      const query = buildMaxUpvotesQuery();
+      const promises = Array.from({ length: numRounds }, (_, index) =>
+        fetch(
+          `/api/round?subreddit=${encodeURIComponent(subreddit)}&round=${index + 1}&${query}`,
+        ).then((res) => {
+          if (!res.ok) {
+            throw new Error(
+              "Failed to fetch subreddit data. Please check the spelling.",
+            );
+          }
+          return res.json();
+        }),
+      );
 
       const results = await Promise.all(promises);
 
-      const generatedRounds: RoundData[] = results.map(res => {
+      const generatedRounds: RoundData[] = results.map((res) => {
         if (res.error) throw new Error(res.error);
         return res[0];
       });
 
       setRounds(generatedRounds);
       setGameState("playing");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMessage(err.message || "An unexpected error occurred.");
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
       setGameState("error");
     }
   };
@@ -76,8 +101,11 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
       {gameState === "setup" && (
         <GameSetup
+          maxUpvotes={maxUpvotes}
           onStartDaily={handleStartDaily}
           onStartCustom={handleStartCustom}
+          onMaxUpvotesChange={handleMaxUpvotesChange}
+          error={errorMessage}
         />
       )}
 
@@ -87,8 +115,19 @@ export default function Home() {
           <p className="mt-4 text-xl text-gray-300">Fetching Reddit Posts...</p>
         </div>
       )}
+
       {gameState === "playing" && (
         <GameBoard rounds={rounds} onPlayAgain={handlePlayAgain} />
+      )}
+
+      {gameState === "error" && (
+        <GameSetup
+          maxUpvotes={maxUpvotes}
+          onStartDaily={handleStartDaily}
+          onStartCustom={handleStartCustom}
+          onMaxUpvotesChange={handleMaxUpvotesChange}
+          error={errorMessage}
+        />
       )}
     </main>
   );

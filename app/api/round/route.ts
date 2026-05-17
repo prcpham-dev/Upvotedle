@@ -1,4 +1,5 @@
 import { fetchGameRound } from "@/lib/reddit";
+import { parseMaxUpvotes } from "@/lib/reddit/parseMaxUpvotes";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -21,10 +22,15 @@ export async function GET(request: NextRequest) {
     | "rising"
     | null;
 
+  const maxUpvotes = parseMaxUpvotes(
+    searchParams.get("maxUpvotes"),
+  );
+
   try {
     const payload = await fetchGameRound(subreddit, {
       round: Number.isFinite(round) ? round : 1,
       sort: sort ?? "hot",
+      maxUpvotes,
     });
     return NextResponse.json(payload);
   } catch (error) {
