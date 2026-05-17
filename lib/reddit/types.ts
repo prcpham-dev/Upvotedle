@@ -61,4 +61,6 @@ export type FetchRoundOptions = {
   round?: number;
   /** Only include posts with upvotes at or below this value (default: 1000). */
   maxUpvotes?: number;
+  /** When set, post selection uses this seed instead of Math.random(). */
+  seed?: number;
 };
