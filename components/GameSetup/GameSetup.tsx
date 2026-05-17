@@ -8,7 +8,7 @@ import type { UpvoteLimits } from "@/lib/settings";
 interface GameSetupProps {
   upvoteLimits: UpvoteLimits;
   onStartDaily: () => void;
-  onStartCustom: (subreddit: string) => void;
+  onStartCustom: (subreddits: string[], isEndless: boolean, seed: number | null) => void;
   onUpvoteLimitsChange: (limits: UpvoteLimits) => void;
   error?: string;
 }
@@ -20,15 +20,29 @@ export default function GameSetup({
   onUpvoteLimitsChange,
   error,
 }: GameSetupProps) {
-  const [subreddit, setSubreddit] = useState("");
+  const [subredditMode, setSubredditMode] = useState<"custom" | "random">("custom");
+  const [singleSubreddit, setSingleSubreddit] = useState("");
+  const [seedInput, setSeedInput] = useState("");
+  const [isEndless, setIsEndless] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (subreddit.trim()) {
-      onStartCustom(subreddit.trim());
+    if (subredditMode === "custom") {
+      if (singleSubreddit.trim()) {
+        onStartCustom([singleSubreddit.trim()], isEndless, null);
+      }
+    } else {
+      const parsedSeed = Number.parseInt(seedInput, 10);
+      const seed = Number.isFinite(parsedSeed) ? parsedSeed : Math.floor(Math.random() * 1000000);
+      onStartCustom([], isEndless, seed);
     }
   };
+
+  const isFormValid =
+    subredditMode === "custom"
+      ? singleSubreddit.trim().length > 0
+      : seedInput.trim().length > 0;
 
   return (
     <>
@@ -78,21 +92,68 @@ export default function GameSetup({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <input
-            type="text"
-            value={subreddit}
-            onChange={(e) => setSubreddit(e.target.value)}
-            placeholder="Enter a custom subreddit (e.g., memes)"
-            className={styles.input}
-            required
-          />
+          {/* Subreddit Mode Segmented Control */}
+          <div className={styles.segmentedControl}>
+            <button
+              type="button"
+              className={`${styles.segmentButton} ${
+                subredditMode === "custom" ? styles.segmentActive : ""
+              }`}
+              onClick={() => setSubredditMode("custom")}
+            >
+              Custom Subreddit
+            </button>
+            <button
+              type="button"
+              className={`${styles.segmentButton} ${
+                subredditMode === "random" ? styles.segmentActive : ""
+              }`}
+              onClick={() => setSubredditMode("random")}
+            >
+              Random (Seeded)
+            </button>
+          </div>
+
+          {/* Conditional Input Rendering */}
+          {subredditMode === "custom" ? (
+            <input
+              type="text"
+              value={singleSubreddit}
+              onChange={(e) => setSingleSubreddit(e.target.value)}
+              placeholder="Enter a custom subreddit (e.g., memes)"
+              className={styles.input}
+              required={subredditMode === "custom"}
+            />
+          ) : (
+            <input
+              type="number"
+              value={seedInput}
+              onChange={(e) => setSeedInput(e.target.value)}
+              placeholder="Enter a numerical seed (e.g., 42)"
+              className={styles.input}
+              required={subredditMode === "random"}
+            />
+          )}
+
+          {/* Endless Mode Toggle Switch */}
+          <div className={styles.toggleContainer}>
+            <span className={styles.toggleLabel}>Endless Mode (Sudden Death)</span>
+            <label className={styles.toggleSwitch}>
+              <input
+                type="checkbox"
+                checked={isEndless}
+                onChange={(e) => setIsEndless(e.target.checked)}
+              />
+              <span className={styles.toggleSlider}></span>
+            </label>
+          </div>
 
           <button
             type="submit"
             className={`${styles.button} flex flex-row items-center justify-center`}
-            disabled={!subreddit.trim()}
+            disabled={!isFormValid}
           >
-            <span>Play Custom Subreddit</span>
+            <span>Play Custom Game</span>
             <span className={styles.iconMargin}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="6 3 20 12 6 21 6 3"/>

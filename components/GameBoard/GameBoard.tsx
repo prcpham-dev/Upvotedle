@@ -2,35 +2,57 @@
 
 import React, { useState } from "react";
 import styles from "./GameBoard.module.css";
-import { RoundData } from "../../types/types";
+import { RoundData, GameBoardProps } from "../../types/types";
 import PostCard from "../PostCard/PostCard";
 import RoundIndicator, { RoundStatus } from "../RoundIndicator/RoundIndicator";
 
-interface GameBoardProps {
-  rounds: RoundData[];
-  onPlayAgain: () => void;
-}
-
-export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
+export default function GameBoard({
+  rounds: initialRounds,
+  onPlayAgain,
+  isEndless = false,
+  subreddits = [],
+  upvoteLimits,
+}: GameBoardProps) {
+  const [dynamicRounds, setDynamicRounds] = useState<RoundData[]>(initialRounds);
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
   const [hasGuessed, setHasGuessed] = useState(false);
   const [roundStatuses, setRoundStatuses] = useState<RoundStatus[]>(
-    new Array(rounds.length).fill("unplayed")
+    new Array(initialRounds.length).fill("unplayed")
   );
+  const [isEndlessGameOver, setIsEndlessGameOver] = useState(false);
+  const [nextRoundData, setNextRoundData] = useState<RoundData | null>(null);
+  const [isFetchingNext, setIsFetchingNext] = useState(false);
 
-  if (rounds.length === 0) {
+  if (dynamicRounds.length === 0) {
     return <div>No rounds available.</div>;
   }
 
-  const isGameOver = currentRoundIndex >= rounds.length;
+  const isGameOver = isEndless
+    ? isEndlessGameOver
+    : currentRoundIndex >= dynamicRounds.length;
 
   if (isGameOver) {
+    if (isEndless) {
+      // Completed rounds = currentRoundIndex (e.g. failed on Round 5, so Round 5 minus 1 = 4 correct rounds)
+      return (
+        <div className={styles.gameOverContainer}>
+          <h2 className={styles.gameOverTitle}>Endless Game Over!</h2>
+          <p className={styles.gameOverScore}>
+            You successfully completed {currentRoundIndex} rounds before failing!
+          </p>
+          <button onClick={onPlayAgain} className={styles.gameOverButton}>
+            Play Again
+          </button>
+        </div>
+      );
+    }
+
     const correctCount = roundStatuses.filter((s) => s === "correct").length;
     return (
       <div className={styles.gameOverContainer}>
         <h2 className={styles.gameOverTitle}>Game Over!</h2>
         <p className={styles.gameOverScore}>
-          You got {correctCount} out of {rounds.length} correct.
+          You got {correctCount} out of {dynamicRounds.length} correct.
         </p>
         <button onClick={onPlayAgain} className={styles.gameOverButton}>
           Play Again
@@ -39,9 +61,38 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
     );
   }
 
-  const currentRound = rounds[currentRoundIndex];
+  const currentRound = dynamicRounds[currentRoundIndex];
   const postA = currentRound.postA;
   const postB = currentRound.postB;
+
+  const fetchNextRound = async (nextIndex: number) => {
+    if (isFetchingNext) return;
+    setIsFetchingNext(true);
+
+    try {
+      const minUp = upvoteLimits?.minUpvotes ?? 1000;
+      const maxUp = upvoteLimits?.maxUpvotes ?? 1000000;
+      const limitsQuery = `minUpvotes=${minUp}&maxUpvotes=${maxUp}`;
+      const subIndex = (nextIndex - 1) % subreddits.length;
+      const selectedSub =
+        subreddits.length > 0
+          ? subreddits[subIndex]
+          : "memes";
+
+      const res = await fetch(
+        `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch next round");
+      const data = await res.json();
+      if (data && data[0]) {
+        setNextRoundData(data[0]);
+      }
+    } catch (err) {
+      console.error("Error prefetching next round:", err);
+    } finally {
+      setIsFetchingNext(false);
+    }
+  };
 
   const handleGuess = (selected: "A" | "B") => {
     if (hasGuessed) return;
@@ -55,11 +106,56 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
     newStatuses[currentRoundIndex] = isCorrect ? "correct" : "wrong";
     setRoundStatuses(newStatuses);
     setHasGuessed(true);
+
+    // Background prefetch next round immediately if they guessed right in endless mode!
+    if (isEndless && isCorrect) {
+      fetchNextRound(dynamicRounds.length + 1);
+    }
   };
 
-  const handleNextRound = () => {
-    setHasGuessed(false);
-    setCurrentRoundIndex(currentRoundIndex + 1);
+  const handleNextRound = async () => {
+    if (isEndless) {
+      if (roundStatuses[currentRoundIndex] === "wrong") {
+        setIsEndlessGameOver(true);
+        return;
+      }
+
+      let nextRound = nextRoundData;
+      if (!nextRound) {
+        // Fallback: Synchronous fetch if background prefetch wasn't ready
+        try {
+          const minUp = upvoteLimits?.minUpvotes ?? 1000;
+          const maxUp = upvoteLimits?.maxUpvotes ?? 1000000;
+          const limitsQuery = `minUpvotes=${minUp}&maxUpvotes=${maxUp}`;
+          const subIndex = (dynamicRounds.length) % subreddits.length;
+          const selectedSub =
+            subreddits.length > 0
+              ? subreddits[subIndex]
+              : "memes";
+          const nextIndex = dynamicRounds.length + 1;
+
+          const res = await fetch(
+            `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}`
+          );
+          const data = await res.json();
+          nextRound = data[0];
+        } catch (err) {
+          console.error("Failed to fallback-fetch next round:", err);
+          return;
+        }
+      }
+
+      if (nextRound) {
+        setDynamicRounds((prev) => [...prev, nextRound]);
+        setRoundStatuses((prev) => [...prev, "unplayed"]);
+        setNextRoundData(null);
+        setHasGuessed(false);
+        setCurrentRoundIndex((prev) => prev + 1);
+      }
+    } else {
+      setHasGuessed(false);
+      setCurrentRoundIndex(currentRoundIndex + 1);
+    }
   };
 
   const getPostStatus = (post: "A" | "B") => {
@@ -74,10 +170,15 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
 
   return (
     <div className={`fixed inset-0 flex flex-col md:flex-row overflow-hidden ${styles.boardRoot}`}>
-      {/* Round Indicator Container */}
+      {/* Top Header/Indicator Container */}
       <div className={`pointer-events-none z-50 ${styles.roundIndicatorContainer}`}>
-        <div className="pointer-events-auto">
-          <RoundIndicator rounds={roundStatuses} />
+        <div className="pointer-events-auto flex flex-col items-center">
+          <div className={styles.desktopHeaderInfo}>
+            <span className={styles.desktopRoundText}>Round {currentRound.round}</span>
+            <span className={styles.desktopSeparator}>•</span>
+            <span className={styles.desktopSubredditText}>{currentRound.subreddit}</span>
+          </div>
+          {!isEndless && <RoundIndicator rounds={roundStatuses} />}
         </div>
       </div>
 
@@ -90,16 +191,17 @@ export default function GameBoard({ rounds, onPlayAgain }: GameBoardProps) {
 
           {hasGuessed ? (
             <div
-              className={`pointer-events-auto ${styles.centerCircle} ${
-                roundStatuses[currentRoundIndex] === "correct"
-                  ? styles.circleCorrect
-                  : styles.circleWrong
-              }`}
+              className={`pointer-events-auto ${styles.centerCircle} ${roundStatuses[currentRoundIndex] === "correct"
+                ? styles.circleCorrect
+                : styles.circleWrong
+                }`}
               onClick={handleNextRound}
               role="button"
               tabIndex={0}
             >
-              <span className={styles.vsText}>Next</span>
+              <span className={styles.vsText}>
+                {isEndless && roundStatuses[currentRoundIndex] === "wrong" ? "Score" : "Next"}
+              </span>
             </div>
           ) : (
             <div className={`pointer-events-auto ${styles.centerCircle}`}>

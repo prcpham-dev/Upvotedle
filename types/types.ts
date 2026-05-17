@@ -11,3 +11,14 @@ export type RoundData = {
   postA: Post;
   postB: Post;
 }
+
+export interface GameBoardProps {
+  rounds: RoundData[];
+  onPlayAgain: () => void;
+  isEndless?: boolean;
+  subreddits?: string[];
+  upvoteLimits?: {
+    minUpvotes: number;
+    maxUpvotes: number;
+  };
+}
