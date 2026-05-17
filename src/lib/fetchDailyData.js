@@ -1,10 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+function getApiBase() {
+  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE;
+  }
+  if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+  return "";
+}
 
 /**
- * Loads today's 10-round puzzle from the Next.js API (backed by lib/reddit).
+ * Loads today's puzzle from the Next.js API (backed by lib/reddit).
  */
 export async function fetchDailyDataFromApi() {
-  const response = await fetch(`${API_BASE}/api/daily`);
+  const response = await fetch(`${getApiBase()}/api/daily`);
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
