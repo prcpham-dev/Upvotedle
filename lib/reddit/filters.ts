@@ -106,6 +106,9 @@ export function isEligiblePost(
   if (isNsfw(post) || isDeletedOrRemoved(post) || isMediaHeavy(post)) {
     return false;
   }
+  if (!isImageOnlyPost(post)) {
+    return false;
+  }
   if (minUpvotes !== undefined && minUpvotes > 0) {
     if (!isAboveMinUpvoteLimit(post, minUpvotes)) {
       return false;

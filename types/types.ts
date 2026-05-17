@@ -21,4 +21,5 @@ export interface GameBoardProps {
     minUpvotes: number;
     maxUpvotes: number;
   };
+  seed?: number | null;
 }

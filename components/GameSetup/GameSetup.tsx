@@ -7,42 +7,37 @@ import type { UpvoteLimits } from "@/lib/settings";
 
 interface GameSetupProps {
   upvoteLimits: UpvoteLimits;
+  customSubreddit: string;
+  setCustomSubreddit: (val: string) => void;
+  customSeed: string;
+  setCustomSeed: (val: string) => void;
+  isEndless: boolean;
+  setIsEndless: (val: boolean) => void;
   onStartDaily: () => void;
-  onStartCustom: (subreddits: string[], isEndless: boolean, seed: number | null) => void;
+  onStartCustom: (subreddit: string, seed: string, isEndless: boolean) => void;
   onUpvoteLimitsChange: (limits: UpvoteLimits) => void;
   error?: string;
 }
 
 export default function GameSetup({
   upvoteLimits,
+  customSubreddit,
+  setCustomSubreddit,
+  customSeed,
+  setCustomSeed,
+  isEndless,
+  setIsEndless,
   onStartDaily,
   onStartCustom,
   onUpvoteLimitsChange,
   error,
 }: GameSetupProps) {
-  const [subredditMode, setSubredditMode] = useState<"custom" | "random">("custom");
-  const [singleSubreddit, setSingleSubreddit] = useState("");
-  const [seedInput, setSeedInput] = useState("");
-  const [isEndless, setIsEndless] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (subredditMode === "custom") {
-      if (singleSubreddit.trim()) {
-        onStartCustom([singleSubreddit.trim()], isEndless, null);
-      }
-    } else {
-      const parsedSeed = Number.parseInt(seedInput, 10);
-      const seed = Number.isFinite(parsedSeed) ? parsedSeed : Math.floor(Math.random() * 1000000);
-      onStartCustom([], isEndless, seed);
-    }
+    onStartCustom(customSubreddit, customSeed, isEndless);
   };
-
-  const isFormValid =
-    subredditMode === "custom"
-      ? singleSubreddit.trim().length > 0
-      : seedInput.trim().length > 0;
 
   return (
     <>
@@ -92,48 +87,59 @@ export default function GameSetup({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          {/* Subreddit Mode Segmented Control */}
-          <div className={styles.segmentedControl}>
-            <button
-              type="button"
-              className={`${styles.segmentButton} ${
-                subredditMode === "custom" ? styles.segmentActive : ""
-              }`}
-              onClick={() => setSubredditMode("custom")}
-            >
-              Custom Subreddit
-            </button>
-            <button
-              type="button"
-              className={`${styles.segmentButton} ${
-                subredditMode === "random" ? styles.segmentActive : ""
-              }`}
-              onClick={() => setSubredditMode("random")}
-            >
-              Random (Seeded)
-            </button>
+          {/* Custom Subreddit (Optional) */}
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Subreddit Name (Optional)</label>
+            <div className={styles.inputWrapper}>
+              <input
+                type="text"
+                value={customSubreddit}
+                onChange={(e) => setCustomSubreddit(e.target.value)}
+                placeholder="e.g. memes (blank for random)"
+                className={styles.input}
+              />
+              {customSubreddit && (
+                <button
+                  type="button"
+                  className={styles.clearButton}
+                  onClick={() => setCustomSubreddit("")}
+                  aria-label="Clear subreddit"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Conditional Input Rendering */}
-          {subredditMode === "custom" ? (
-            <input
-              type="text"
-              value={singleSubreddit}
-              onChange={(e) => setSingleSubreddit(e.target.value)}
-              placeholder="Enter a custom subreddit (e.g., memes)"
-              className={styles.input}
-              required={subredditMode === "custom"}
-            />
-          ) : (
-            <input
-              type="number"
-              value={seedInput}
-              onChange={(e) => setSeedInput(e.target.value)}
-              placeholder="Enter a numerical seed (e.g., 42)"
-              className={styles.input}
-              required={subredditMode === "random"}
-            />
-          )}
+          {/* Seed Input (Optional, numeric only, no arrow spinner buttons) */}
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Seed Number (Optional)</label>
+            <div className={styles.inputWrapper}>
+              <input
+                type="text"
+                value={customSeed}
+                onChange={(e) => setCustomSeed(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 42 (blank for random)"
+                className={styles.input}
+              />
+              {customSeed && (
+                <button
+                  type="button"
+                  className={styles.clearButton}
+                  onClick={() => setCustomSeed("")}
+                  aria-label="Clear seed"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* Endless Mode Toggle Switch */}
           <div className={styles.toggleContainer}>
@@ -151,7 +157,6 @@ export default function GameSetup({
           <button
             type="submit"
             className={`${styles.button} flex flex-row items-center justify-center`}
-            disabled={!isFormValid}
           >
             <span>Play Custom Game</span>
             <span className={styles.iconMargin}>

@@ -210,6 +210,46 @@
   color: #ffffff;
 }
 
+.desktopSeedText {
+  color: #a0a0a0;
+}
+
+.bottomSeedBadge {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(26, 26, 27, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid #333333;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-correct);
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 768px) {
+  .bottomSeedBadge {
+    display: none;
+  }
+}
+
+.gameOverSeed {
+  font-size: 18px;
+  color: #888888;
+  margin-top: -32px;
+  margin-bottom: 48px;
+}
+
+.highlightSeed {
+  color: var(--color-correct);
+  font-weight: 800;
+}
+
 @keyframes fadeInCards {
   from {
     opacity: 0;

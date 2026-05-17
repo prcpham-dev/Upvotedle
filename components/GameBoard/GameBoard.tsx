@@ -12,6 +12,7 @@ export default function GameBoard({
   isEndless = false,
   subreddits = [],
   upvoteLimits,
+  seed = null,
 }: GameBoardProps) {
   const [dynamicRounds, setDynamicRounds] = useState<RoundData[]>(initialRounds);
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
@@ -33,13 +34,17 @@ export default function GameBoard({
 
   if (isGameOver) {
     if (isEndless) {
-      // Completed rounds = currentRoundIndex (e.g. failed on Round 5, so Round 5 minus 1 = 4 correct rounds)
       return (
         <div className={styles.gameOverContainer}>
           <h2 className={styles.gameOverTitle}>Endless Game Over!</h2>
           <p className={styles.gameOverScore}>
             You successfully completed {currentRoundIndex} rounds before failing!
           </p>
+          {seed !== null && (
+            <p className={styles.gameOverSeed}>
+              Seed of this run: <strong className={styles.highlightSeed}>{seed}</strong>
+            </p>
+          )}
           <button onClick={onPlayAgain} className={styles.gameOverButton}>
             Play Again
           </button>
@@ -54,6 +59,11 @@ export default function GameBoard({
         <p className={styles.gameOverScore}>
           You got {correctCount} out of {dynamicRounds.length} correct.
         </p>
+        {seed !== null && (
+          <p className={styles.gameOverSeed}>
+            Seed of this run: <strong className={styles.highlightSeed}>{seed}</strong>
+          </p>
+        )}
         <button onClick={onPlayAgain} className={styles.gameOverButton}>
           Play Again
         </button>
@@ -73,19 +83,34 @@ export default function GameBoard({
       const minUp = upvoteLimits?.minUpvotes ?? 1000;
       const maxUp = upvoteLimits?.maxUpvotes ?? 1000000;
       const limitsQuery = `minUpvotes=${minUp}&maxUpvotes=${maxUp}`;
-      const subIndex = (nextIndex - 1) % subreddits.length;
-      const selectedSub =
-        subreddits.length > 0
-          ? subreddits[subIndex]
-          : "memes";
+      
+      let data: any = null;
+      let attempts = 0;
 
-      const res = await fetch(
-        `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}`
-      );
-      if (!res.ok) throw new Error("Failed to fetch next round");
-      const data = await res.json();
-      if (data && data[0]) {
-        setNextRoundData(data[0]);
+      while (!data && attempts < Math.max(10, subreddits.length)) {
+        const subIndex = (nextIndex - 1 + attempts) % subreddits.length;
+        const selectedSub = subreddits.length > 0 ? subreddits[subIndex] : "memes";
+        const seedParam = seed !== null ? `&seed=${seed + nextIndex - 1 + attempts}` : "";
+
+        try {
+          const res = await fetch(
+            `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}${seedParam}`
+          );
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json[0] && !json.error) {
+              data = json[0];
+              break;
+            }
+          }
+        } catch (e) {
+          // Silent catch to fallback to next candidate
+        }
+        attempts++;
+      }
+
+      if (data) {
+        setNextRoundData(data);
       }
     } catch (err) {
       console.error("Error prefetching next round:", err);
@@ -127,18 +152,30 @@ export default function GameBoard({
           const minUp = upvoteLimits?.minUpvotes ?? 1000;
           const maxUp = upvoteLimits?.maxUpvotes ?? 1000000;
           const limitsQuery = `minUpvotes=${minUp}&maxUpvotes=${maxUp}`;
-          const subIndex = (dynamicRounds.length) % subreddits.length;
-          const selectedSub =
-            subreddits.length > 0
-              ? subreddits[subIndex]
-              : "memes";
-          const nextIndex = dynamicRounds.length + 1;
+          
+          let attempts = 0;
+          while (!nextRound && attempts < Math.max(10, subreddits.length)) {
+            const subIndex = (dynamicRounds.length + attempts) % subreddits.length;
+            const selectedSub = subreddits.length > 0 ? subreddits[subIndex] : "memes";
+            const nextIndex = dynamicRounds.length + 1;
+            const seedParam = seed !== null ? `&seed=${seed + nextIndex - 1 + attempts}` : "";
 
-          const res = await fetch(
-            `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}`
-          );
-          const data = await res.json();
-          nextRound = data[0];
+            try {
+              const res = await fetch(
+                `/api/round?subreddit=${encodeURIComponent(selectedSub)}&round=${nextIndex}&${limitsQuery}${seedParam}`
+              );
+              if (res.ok) {
+                const json = await res.json();
+                if (json && json[0] && !json.error) {
+                  nextRound = json[0];
+                  break;
+                }
+              }
+            } catch (e) {
+              // Silent catch
+            }
+            attempts++;
+          }
         } catch (err) {
           console.error("Failed to fallback-fetch next round:", err);
           return;

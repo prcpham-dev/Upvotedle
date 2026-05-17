@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
 
   const maxUpvotes = parseMaxUpvotes(searchParams.get("maxUpvotes"));
   const minUpvotes = parseMinUpvotes(searchParams.get("minUpvotes"));
+  const seedParam = searchParams.get("seed");
+  const seed = seedParam ? Number.parseInt(seedParam, 10) : undefined;
 
   try {
     const payload = await fetchGameRound(subreddit, {
@@ -31,6 +33,7 @@ export async function GET(request: NextRequest) {
       sort: sort ?? "hot",
       maxUpvotes,
       minUpvotes,
+      seed: Number.isFinite(seed) ? seed : undefined,
     });
     return NextResponse.json(payload);
   } catch (error) {
