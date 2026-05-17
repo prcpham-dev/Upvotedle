@@ -3,36 +3,54 @@
 import React, { useCallback, useEffect, useState } from "react";
 import GameSetup from "@/components/GameSetup/GameSetup";
 import GameBoard from "@/components/GameBoard/GameBoard";
-import { DEFAULT_MAX_UPVOTES } from "@/lib/reddit/constants";
-import { loadMaxUpvotes, saveMaxUpvotes } from "@/lib/settings";
+import {
+  DEFAULT_MAX_UPVOTES,
+  DEFAULT_MIN_UPVOTES,
+} from "@/lib/reddit/constants";
+import {
+  loadUpvoteLimits,
+  saveUpvoteLimits,
+  type UpvoteLimits,
+} from "@/lib/settings";
 import { RoundData } from "@/types/types";
+
+const DEFAULT_LIMITS: UpvoteLimits = {
+  minUpvotes: DEFAULT_MIN_UPVOTES,
+  maxUpvotes: DEFAULT_MAX_UPVOTES,
+};
+
+function buildUpvoteLimitsQuery(limits: UpvoteLimits): string {
+  const params = new URLSearchParams({
+    minUpvotes: String(limits.minUpvotes),
+    maxUpvotes: String(limits.maxUpvotes),
+  });
+  return params.toString();
+}
 
 export default function Home() {
   const [gameState, setGameState] = useState<"setup" | "loading" | "playing" | "error">("setup");
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [maxUpvotes, setMaxUpvotes] = useState(DEFAULT_MAX_UPVOTES);
+  const [upvoteLimits, setUpvoteLimits] = useState<UpvoteLimits>(DEFAULT_LIMITS);
 
   useEffect(() => {
-    setMaxUpvotes(loadMaxUpvotes());
+    setUpvoteLimits(loadUpvoteLimits());
   }, []);
 
-  const handleMaxUpvotesChange = useCallback((value: number) => {
-    setMaxUpvotes(value);
-    saveMaxUpvotes(value);
+  const handleUpvoteLimitsChange = useCallback((limits: UpvoteLimits) => {
+    setUpvoteLimits(limits);
+    saveUpvoteLimits(limits);
   }, []);
-
-  const buildMaxUpvotesQuery = useCallback(
-    () => `maxUpvotes=${encodeURIComponent(maxUpvotes)}`,
-    [maxUpvotes],
-  );
 
   const handleStartDaily = async () => {
     setGameState("loading");
     setErrorMessage("");
 
+    const limits = loadUpvoteLimits();
+    setUpvoteLimits(limits);
+
     try {
-      const response = await fetch(`/api/daily?${buildMaxUpvotesQuery()}`);
+      const response = await fetch(`/api/daily?${buildUpvoteLimitsQuery(limits)}`);
       if (!response.ok) {
         throw new Error("Failed to fetch daily puzzle data.");
       }
@@ -58,9 +76,12 @@ export default function Home() {
     setGameState("loading");
     setErrorMessage("");
 
+    const limits = loadUpvoteLimits();
+    setUpvoteLimits(limits);
+
     try {
       const numRounds = 10;
-      const query = buildMaxUpvotesQuery();
+      const query = buildUpvoteLimitsQuery(limits);
       const promises = Array.from({ length: numRounds }, (_, index) =>
         fetch(
           `/api/round?subreddit=${encodeURIComponent(subreddit)}&round=${index + 1}&${query}`,
@@ -101,10 +122,10 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
       {gameState === "setup" && (
         <GameSetup
-          maxUpvotes={maxUpvotes}
+          upvoteLimits={upvoteLimits}
           onStartDaily={handleStartDaily}
           onStartCustom={handleStartCustom}
-          onMaxUpvotesChange={handleMaxUpvotesChange}
+          onUpvoteLimitsChange={handleUpvoteLimitsChange}
           error={errorMessage}
         />
       )}
@@ -122,10 +143,10 @@ export default function Home() {
 
       {gameState === "error" && (
         <GameSetup
-          maxUpvotes={maxUpvotes}
+          upvoteLimits={upvoteLimits}
           onStartDaily={handleStartDaily}
           onStartCustom={handleStartCustom}
-          onMaxUpvotesChange={handleMaxUpvotesChange}
+          onUpvoteLimitsChange={handleUpvoteLimitsChange}
           error={errorMessage}
         />
       )}

@@ -1,3 +1,4 @@
+import { getPostUpvotes } from "./filters";
 import type { RedditPostRaw, RoundPost } from "./types";
 
 const IMAGE_URL_PATTERN = /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i;
@@ -64,7 +65,7 @@ export function getPostBody(post: RedditPostRaw): string {
 export function toRoundPost(post: RedditPostRaw): RoundPost {
   const roundPost: RoundPost = {
     title: post.title.trim(),
-    upvotes: post.ups ?? post.score ?? 0,
+    upvotes: getPostUpvotes(post),
     body: getPostBody(post),
   };
 

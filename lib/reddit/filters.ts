@@ -1,3 +1,4 @@
+import { hasMaxUpvoteCap } from "./constants";
 import { isImageOnlyPost } from "./mapPost";
 import type { RedditPostRaw } from "./types";
 
@@ -20,7 +21,13 @@ const MEDIA_DOMAINS = new Set([
 const IMAGE_URL_PATTERN = /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i;
 
 export function getPostUpvotes(post: RedditPostRaw): number {
-  return post.ups ?? post.score ?? 0;
+  if (typeof post.ups === "number" && Number.isFinite(post.ups)) {
+    return post.ups;
+  }
+  if (typeof post.score === "number" && Number.isFinite(post.score)) {
+    return post.score;
+  }
+  return 0;
 }
 
 export function isWithinUpvoteLimit(
@@ -28,6 +35,13 @@ export function isWithinUpvoteLimit(
   maxUpvotes: number,
 ): boolean {
   return getPostUpvotes(post) <= maxUpvotes;
+}
+
+export function isAboveMinUpvoteLimit(
+  post: RedditPostRaw,
+  minUpvotes: number,
+): boolean {
+  return getPostUpvotes(post) >= minUpvotes;
 }
 
 export function isDeletedOrRemoved(post: RedditPostRaw): boolean {
@@ -81,6 +95,7 @@ export function isMediaHeavy(post: RedditPostRaw): boolean {
 export function isEligiblePost(
   post: RedditPostRaw,
   maxUpvotes?: number,
+  minUpvotes?: number,
 ): boolean {
   if (!post.title?.trim()) {
     return false;
@@ -91,7 +106,16 @@ export function isEligiblePost(
   if (isNsfw(post) || isDeletedOrRemoved(post) || isMediaHeavy(post)) {
     return false;
   }
-  if (maxUpvotes !== undefined && !isWithinUpvoteLimit(post, maxUpvotes)) {
+  if (minUpvotes !== undefined && minUpvotes > 0) {
+    if (!isAboveMinUpvoteLimit(post, minUpvotes)) {
+      return false;
+    }
+  }
+  if (
+    maxUpvotes !== undefined &&
+    hasMaxUpvoteCap(maxUpvotes) &&
+    !isWithinUpvoteLimit(post, maxUpvotes)
+  ) {
     return false;
   }
   return true;

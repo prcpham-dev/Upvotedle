@@ -4,20 +4,21 @@ import React, { useState } from "react";
 import styles from "./GameSetup.module.css";
 import { Play, Calendar, Settings as SettingsIcon } from "lucide-react";
 import Settings from "@/components/Settings/Settings";
+import type { UpvoteLimits } from "@/lib/settings";
 
 interface GameSetupProps {
-  maxUpvotes: number;
+  upvoteLimits: UpvoteLimits;
   onStartDaily: () => void;
   onStartCustom: (subreddit: string) => void;
-  onMaxUpvotesChange: (maxUpvotes: number) => void;
+  onUpvoteLimitsChange: (limits: UpvoteLimits) => void;
   error?: string;
 }
 
 export default function GameSetup({
-  maxUpvotes,
+  upvoteLimits,
   onStartDaily,
   onStartCustom,
-  onMaxUpvotesChange,
+  onUpvoteLimitsChange,
   error,
 }: GameSetupProps) {
   const [subreddit, setSubreddit] = useState("");
@@ -93,9 +94,9 @@ export default function GameSetup({
 
       <Settings
         isOpen={settingsOpen}
-        maxUpvotes={maxUpvotes}
+        upvoteLimits={upvoteLimits}
         onClose={() => setSettingsOpen(false)}
-        onSave={onMaxUpvotesChange}
+        onSave={onUpvoteLimitsChange}
       />
     </>
   );

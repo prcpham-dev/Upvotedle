@@ -59,11 +59,16 @@
 
 .label {
   display: block;
+  margin-top: 16px;
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
   color: #d4d4d4;
   text-align: left;
+}
+
+.label:first-of-type {
+  margin-top: 0;
 }
 
 .input {

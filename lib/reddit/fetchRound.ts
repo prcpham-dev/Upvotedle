@@ -1,5 +1,9 @@
-import { DEFAULT_MAX_UPVOTES } from "./constants";
-import { isEligiblePost } from "./filters";
+import {
+  DEFAULT_MAX_UPVOTES,
+  DEFAULT_MIN_UPVOTES,
+  hasMaxUpvoteCap,
+} from "./constants";
+import { getPostUpvotes, isEligiblePost } from "./filters";
 import { toRoundPost } from "./mapPost";
 import type {
   FetchRoundOptions,
@@ -18,6 +22,19 @@ function normalizeSubreddit(subreddit: string): string {
 
 function formatSubreddit(subreddit: string): string {
   return `r/${normalizeSubreddit(subreddit)}`;
+}
+
+function formatUpvoteRange(minUpvotes: number, maxUpvotes: number): string {
+  if (minUpvotes > 0 && hasMaxUpvoteCap(maxUpvotes)) {
+    return `with ${minUpvotes.toLocaleString()}–${maxUpvotes.toLocaleString()} upvotes`;
+  }
+  if (minUpvotes > 0) {
+    return `with at least ${minUpvotes.toLocaleString()} upvotes`;
+  }
+  if (hasMaxUpvoteCap(maxUpvotes)) {
+    return `with at most ${maxUpvotes.toLocaleString()} upvotes`;
+  }
+  return "matching upvote filters";
 }
 
 /** Fisher–Yates partial shuffle; picks `count` distinct random items. */
@@ -80,17 +97,33 @@ export async function fetchGameRound(
   options: FetchRoundOptions = {},
 ): Promise<GameRoundPayload> {
   const maxUpvotes = options.maxUpvotes ?? DEFAULT_MAX_UPVOTES;
+  const minUpvotes = options.minUpvotes ?? DEFAULT_MIN_UPVOTES;
   const url = buildListingUrl(subreddit, options);
   const posts = await fetchListing(url);
-  const eligible = posts.filter((post) => isEligiblePost(post, maxUpvotes));
+  const eligible = posts.filter((post) =>
+    isEligiblePost(post, maxUpvotes, minUpvotes),
+  );
 
   if (eligible.length < 2) {
+    const range = formatUpvoteRange(minUpvotes, maxUpvotes);
     throw new Error(
-      `Not enough eligible posts at or below ${maxUpvotes} upvotes (found ${eligible.length})`,
+      `Not enough eligible posts ${range} (found ${eligible.length})`,
     );
   }
 
   const [postA, postB] = pickRandom(eligible, 2);
+
+  for (const post of [postA, postB]) {
+    const upvotes = getPostUpvotes(post);
+    if (
+      (hasMaxUpvoteCap(maxUpvotes) && upvotes > maxUpvotes) ||
+      (minUpvotes > 0 && upvotes < minUpvotes)
+    ) {
+      throw new Error(
+        `Selected post has ${upvotes} upvotes (allowed: ${formatUpvoteRange(minUpvotes, maxUpvotes)})`,
+      );
+    }
+  }
 
   const round: GameRound = {
     round: options.round ?? 1,
