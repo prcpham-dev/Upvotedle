@@ -9,6 +9,7 @@ import { DAILY_SUBREDDITS } from "@/lib/reddit/dailySubreddits";
 import { pickSeededSample } from "@/lib/reddit/seededRandom";
 import { fetchRoundBatch, BATCH_SIZE } from "@/lib/reddit/roundFetcher";
 import type { RoundData } from "@/types/types";
+import { getApiBase } from "@/lib/api";
 
 const DEFAULT_LIMITS: UpvoteLimits = {
   minUpvotes: DEFAULT_MIN_UPVOTES,
@@ -84,7 +85,7 @@ export default function Home() {
     setUpvoteLimits(limits);
 
     try {
-      const res = await fetch(`/api/daily?${buildLimitsQuery(limits)}`);
+      const res = await fetch(`${getApiBase()}/api/daily?${buildLimitsQuery(limits)}`);
       const json = await res.json();
 
       if (!res.ok) {

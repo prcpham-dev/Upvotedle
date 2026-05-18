@@ -1,4 +1,5 @@
 import { RoundData } from "@/types/types";
+import { getApiBase } from "@/lib/api";
 
 export const BATCH_SIZE = 5;
 
@@ -26,7 +27,7 @@ export async function fetchRoundBatch({
   if (subreddits.length === 1) {
     const sub = subreddits[0];
     const roundSeed = seed + startRound;
-    const url = `/api/round?subreddit=${encodeURIComponent(sub)}&count=${count}&round=${startRound}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
+    const url = `${getApiBase()}/api/round?subreddit=${encodeURIComponent(sub)}&count=${count}&round=${startRound}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
     const res = await fetch(url);
     const data = await res.json();
 
@@ -57,7 +58,7 @@ export async function fetchRoundBatch({
     candidateIndex++;
 
     const roundSeed = seed + roundNumber;
-    const url = `/api/round?subreddit=${encodeURIComponent(sub)}&round=${roundNumber}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
+    const url = `${getApiBase()}/api/round?subreddit=${encodeURIComponent(sub)}&round=${roundNumber}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
 
     try {
       const res = await fetch(url);
