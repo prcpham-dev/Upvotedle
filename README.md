@@ -33,7 +33,6 @@ The project is built using **Next.js (App Router)**, **TypeScript**, and modular
 
 
 ## Author
-
 * [Percy Pham](https://github.com/prcpham-dev)
 * [Minh Pham](https://github.com/Bubseatbubs)
 * [Danny Pham](https://github.com/PhamDanny)
