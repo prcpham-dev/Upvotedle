@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import styles from "./RoundIndicator.module.css";
 
 export type RoundStatus = "unplayed" | "correct" | "wrong";

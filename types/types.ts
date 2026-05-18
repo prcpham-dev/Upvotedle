@@ -4,6 +4,12 @@ export type Post = {
   upvotes: number;
   /** Direct image URL when the post is a single image. */
   image?: string;
+  /** Reddit username of the post author. */
+  author: string;
+  /** Reddit permalink path e.g. /r/sub/comments/abc/title/ */
+  permalink: string;
+  /** Unix timestamp (seconds) when the post was created. */
+  createdAt: number;
 }
 
 export type RoundData = {
@@ -11,6 +17,12 @@ export type RoundData = {
   subreddit: string;
   postA: Post;
   postB: Post;
+}
+
+export interface CustomConfig {
+  subreddit: string;
+  seed: string;
+  isEndless: boolean;
 }
 
 export interface GameBoardProps {

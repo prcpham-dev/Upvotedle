@@ -69,6 +69,9 @@ export function toRoundPost(post: RedditPostRaw): RoundPost {
     title: post.title.trim(),
     upvotes: getPostUpvotes(post),
     body: getPostBody(post),
+    author: post.author ?? "unknown",
+    permalink: post.permalink ?? "",
+    createdAt: post.created_utc ?? 0,
   };
 
   const image = getPostImageUrl(post);

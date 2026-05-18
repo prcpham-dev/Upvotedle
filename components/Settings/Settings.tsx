@@ -5,7 +5,6 @@ import {
   DEFAULT_MAX_UPVOTES,
   DEFAULT_MIN_UPVOTES,
   MAX_UPVOTES_LIMIT,
-  hasMaxUpvoteCap,
 } from "@/lib/reddit/constants";
 import {
   clampMaxUpvotes,
@@ -41,18 +40,19 @@ export default function Settings({
     return null;
   }
 
+  const parsedMin = Number.parseInt(minDraft, 10);
+  const parsedMax = Number.parseInt(maxDraft, 10);
+  const minVal = Number.isFinite(parsedMin) ? parsedMin : 0;
+  const maxVal = Number.isFinite(parsedMax) ? parsedMax : MAX_UPVOTES_LIMIT;
+
+  const isRangeInvalid = minVal > maxVal;
+
   const handleSave = () => {
-    const parsedMin = Number.parseInt(minDraft, 10);
-    const parsedMax = Number.parseInt(maxDraft, 10);
-    const minUpvotes = clampMinUpvotes(
-      Number.isFinite(parsedMin) ? parsedMin : DEFAULT_MIN_UPVOTES,
-    );
-    let maxUpvotes = clampMaxUpvotes(
-      Number.isFinite(parsedMax) ? parsedMax : DEFAULT_MAX_UPVOTES,
-    );
-    if (hasMaxUpvoteCap(maxUpvotes) && minUpvotes > maxUpvotes) {
-      maxUpvotes = minUpvotes;
-    }
+    if (isRangeInvalid) return;
+
+    const minUpvotes = clampMinUpvotes(minVal);
+    const maxUpvotes = clampMaxUpvotes(maxVal);
+
     onSave({ minUpvotes, maxUpvotes });
     onClose();
   };
@@ -130,7 +130,7 @@ export default function Settings({
             step={1}
             value={minDraft}
             onChange={(e) => setMinDraft(e.target.value)}
-            className={styles.input}
+            className={`${styles.input} ${isRangeInvalid ? styles.inputError : ""}`}
           />
           <div className={styles.spinnerButtons}>
             <button
@@ -172,7 +172,7 @@ export default function Settings({
             step={1}
             value={maxDraft}
             onChange={(e) => setMaxDraft(e.target.value)}
-            className={styles.input}
+            className={`${styles.input} ${isRangeInvalid ? styles.inputError : ""}`}
           />
           <div className={styles.spinnerButtons}>
             <button
@@ -202,11 +202,22 @@ export default function Settings({
           to exclude viral posts (e.g. 1000 hides posts with 5,000 upvotes).
         </p>
 
+        {isRangeInvalid && (
+          <div className={styles.errorMessage}>
+            Minimum upvotes cannot be greater than maximum upvotes.
+          </div>
+        )}
+
         <div className={styles.actions}>
           <button type="button" className={styles.cancelButton} onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className={styles.saveButton} onClick={handleSave}>
+          <button
+            type="button"
+            className={styles.saveButton}
+            onClick={handleSave}
+            disabled={isRangeInvalid}
+          >
             Save
           </button>
         </div>

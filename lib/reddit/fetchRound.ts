@@ -9,7 +9,6 @@ import { getPostId } from "./postId";
 import { createSeededRandom } from "./seededRandom";
 import type {
   FetchRoundOptions,
-  GameRound,
   GameRoundPayload,
   ListingSource,
   RedditListingResponse,

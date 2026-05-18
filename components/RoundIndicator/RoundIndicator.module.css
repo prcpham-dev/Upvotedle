@@ -4,31 +4,6 @@
   margin-bottom: 8px;
 }
 
-.roundInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 8px;
-  gap: 2px;
-}
-
-.roundLabel {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #bfc7d8;
-  line-height: 1.2;
-}
-
-.subredditLabel {
-  font-size: 1rem;
-  color: #bfc7d8;
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
 .indicatorList {
   list-style: none;
   padding: 0;

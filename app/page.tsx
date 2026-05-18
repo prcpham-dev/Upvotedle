@@ -1,32 +1,36 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import GameSetup from "@/components/GameSetup/GameSetup";
 import GameBoard from "@/components/GameBoard/GameBoard";
-import {
-  DEFAULT_MAX_UPVOTES,
-  DEFAULT_MIN_UPVOTES,
-} from "@/lib/reddit/constants";
-import {
-  loadUpvoteLimits,
-  saveUpvoteLimits,
-  type UpvoteLimits,
-} from "@/lib/settings";
-import { RoundData } from "@/types/types";
+import { DEFAULT_MAX_UPVOTES, DEFAULT_MIN_UPVOTES } from "@/lib/reddit/constants";
+import { loadUpvoteLimits, saveUpvoteLimits, type UpvoteLimits } from "@/lib/settings";
 import { DAILY_SUBREDDITS } from "@/lib/reddit/dailySubreddits";
 import { pickSeededSample } from "@/lib/reddit/seededRandom";
+import { fetchRoundBatch, BATCH_SIZE } from "@/lib/reddit/roundFetcher";
+import type { RoundData } from "@/types/types";
 
 const DEFAULT_LIMITS: UpvoteLimits = {
   minUpvotes: DEFAULT_MIN_UPVOTES,
   maxUpvotes: DEFAULT_MAX_UPVOTES,
 };
 
-function buildUpvoteLimitsQuery(limits: UpvoteLimits): string {
-  const params = new URLSearchParams({
+function buildLimitsQuery(limits: UpvoteLimits): string {
+  return new URLSearchParams({
     minUpvotes: String(limits.minUpvotes),
     maxUpvotes: String(limits.maxUpvotes),
-  });
-  return params.toString();
+  }).toString();
+}
+
+function resolveSeed(seedStr: string): number {
+  const parsed = Number.parseInt(seedStr.trim(), 10);
+  return Number.isFinite(parsed) ? parsed : Math.floor(Math.random() * 1_000_000);
+}
+
+function buildCandidateList(subreddit: string, seed: number): string[] {
+  if (subreddit.trim()) return [subreddit.trim()];
+  const pool = [...DAILY_SUBREDDITS];
+  return pickSeededSample(pool, pool.length, seed);
 }
 
 export default function Home() {
@@ -34,35 +38,33 @@ export default function Home() {
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [upvoteLimits, setUpvoteLimits] = useState<UpvoteLimits>(DEFAULT_LIMITS);
-  
-  // Custom Game inputs kept on standby (never reset between runs)
-  const [customSubreddit, setCustomSubreddit] = useState("");
-  const [customSeed, setCustomSeed] = useState("");
+  const [customConfig, setCustomConfig] = useState({
+    subreddit: "",
+    seed: "",
+    isEndless: false,
+  });
   const [isEndless, setIsEndless] = useState(false);
-  
-  // The actual seed used for the current active playing game
   const [currentRunSeed, setCurrentRunSeed] = useState<number | null>(null);
   const [subreddits, setSubreddits] = useState<string[]>([]);
 
+  // Restore inputs from localStorage on mount
   useEffect(() => {
     setUpvoteLimits(loadUpvoteLimits());
-    
-    // Restore inputs from localStorage on load
-    const savedSub = localStorage.getItem("redditdle_custom_subreddit");
-    if (savedSub) setCustomSubreddit(savedSub);
-
-    const savedSeed = localStorage.getItem("redditdle_custom_seed");
-    if (savedSeed) setCustomSeed(savedSeed);
+    setCustomConfig({
+      subreddit: localStorage.getItem("redditdle_custom_subreddit") || "",
+      seed: localStorage.getItem("redditdle_custom_seed") || "",
+      isEndless: false,
+    });
   }, []);
 
-  const handleSetCustomSubreddit = (val: string) => {
-    setCustomSubreddit(val);
-    localStorage.setItem("redditdle_custom_subreddit", val);
-  };
-
-  const handleSetCustomSeed = (val: string) => {
-    setCustomSeed(val);
-    localStorage.setItem("redditdle_custom_seed", val);
+  const handleConfigChange = (newConfig: Partial<typeof customConfig>) => {
+    setCustomConfig((prev) => {
+      if (newConfig.subreddit !== undefined)
+        localStorage.setItem("redditdle_custom_subreddit", newConfig.subreddit);
+      if (newConfig.seed !== undefined)
+        localStorage.setItem("redditdle_custom_seed", newConfig.seed);
+      return { ...prev, ...newConfig };
+    });
   };
 
   const handleUpvoteLimitsChange = useCallback((limits: UpvoteLimits) => {
@@ -70,6 +72,7 @@ export default function Home() {
     saveUpvoteLimits(limits);
   }, []);
 
+  // ── Daily: fetch all 10 rounds server-side via /api/daily ─────────────────
   const handleStartDaily = async () => {
     setGameState("loading");
     setErrorMessage("");
@@ -81,33 +84,28 @@ export default function Home() {
     setUpvoteLimits(limits);
 
     try {
-      const response = await fetch(`/api/daily?${buildUpvoteLimitsQuery(limits)}`);
-      const json = await response.json();
+      const res = await fetch(`/api/daily?${buildLimitsQuery(limits)}`);
+      const json = await res.json();
 
-      if (!response.ok) {
+      if (!res.ok) {
         throw new Error(
-          typeof json.error === "string"
-            ? json.error
-            : "Failed to fetch daily puzzle data.",
+          typeof json.error === "string" ? json.error : "Failed to fetch daily puzzle.",
         );
       }
 
-      setRounds(json);
+      // /api/daily returns GameRound[] — shape-compatible with RoundData[]
+      setRounds(json as RoundData[]);
       setGameState("playing");
     } catch (err: unknown) {
       console.error(err);
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
-      setGameState("setup");
+      setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setGameState("error");
     }
   };
 
-  const handleStartCustom = async (
-    subreddit: string,
-    seedStr: string,
-    endless: boolean,
-  ) => {
+  // ── Custom: fetch first batch client-side, GameBoard prefetches the rest ──
+  const handleStartCustom = async () => {
+    const { subreddit, seed: seedStr, isEndless: endless } = customConfig;
     setGameState("loading");
     setErrorMessage("");
     setIsEndless(endless);
@@ -115,95 +113,26 @@ export default function Home() {
     const limits = loadUpvoteLimits();
     setUpvoteLimits(limits);
 
-    // Resolve the numerical seed (blank = random number generated)
-    let resolvedSeed = seedStr.trim() ? Number.parseInt(seedStr, 10) : null;
-    if (resolvedSeed === null || !Number.isFinite(resolvedSeed)) {
-      resolvedSeed = Math.floor(Math.random() * 1000000);
-    }
+    const resolvedSeed = resolveSeed(seedStr);
     setCurrentRunSeed(resolvedSeed);
 
+    const candidates = buildCandidateList(subreddit, resolvedSeed);
+    setSubreddits(candidates);
+
     try {
-      const isCustomSubProvided = !!subreddit.trim();
-      
-      // Seed-shuffled pool of DAILY_SUBREDDITS
-      const pool = [...DAILY_SUBREDDITS];
-      const fallbackPool = pickSeededSample(pool, pool.length, resolvedSeed);
-      
-      const numRounds = endless ? 3 : 10;
-      const query = buildUpvoteLimitsQuery(limits);
+      const firstBatch = await fetchRoundBatch({
+        subreddits: candidates,
+        count: BATCH_SIZE,
+        startRound: 1,
+        limitsQuery: buildLimitsQuery(limits),
+        seed: resolvedSeed,
+      });
 
-      // If custom sub is provided, play strictly from that subreddit. Otherwise, use the shuffled list.
-      let candidatesList: string[] = [];
-      if (isCustomSubProvided) {
-        candidatesList = Array(numRounds).fill(subreddit.trim());
-        setSubreddits([subreddit.trim()]);
-      } else {
-        candidatesList = fallbackPool;
-        setSubreddits(fallbackPool);
-      }
-      
-      const payload: RoundData[] = [];
-
-      if (isCustomSubProvided) {
-        const res = await fetch(
-          `/api/round?subreddit=${encodeURIComponent(subreddit.trim())}&count=${numRounds}&${query}&seed=${resolvedSeed}`,
-        );
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(
-            typeof data.error === "string"
-              ? data.error
-              : "Failed to fetch custom puzzle rounds.",
-          );
-        }
-        if (!Array.isArray(data) || data.length < numRounds) {
-          throw new Error(
-            `Could only build ${Array.isArray(data) ? data.length : 0} of ${numRounds} rounds.`,
-          );
-        }
-        payload.push(...(data as RoundData[]));
-      } else {
-        let candidateIndex = 0;
-
-        while (payload.length < numRounds && candidateIndex < candidatesList.length) {
-          const sub = candidatesList[candidateIndex];
-          candidateIndex += 1;
-          const round = payload.length + 1;
-          const seedNum = resolvedSeed + round;
-
-          try {
-            const res = await fetch(
-              `/api/round?subreddit=${encodeURIComponent(sub)}&round=${round}&${query}&seed=${seedNum}`,
-            );
-            if (!res.ok) continue;
-            const data = await res.json();
-            if (data.error || !data[0]) continue;
-            payload.push(data[0] as RoundData);
-          } catch {
-            // Try next candidate subreddit.
-          }
-        }
-      }
-
-      if (payload.length < numRounds) {
-        throw new Error(
-          `Could only build ${payload.length} of ${numRounds} rounds. Please check your internet connection or lower upvote limit filters.`
-        );
-      }
-
-      // Re-map round indices
-      const finalizedRounds = payload.slice(0, numRounds).map((r, index) => ({
-        ...r,
-        round: index + 1,
-      }));
-
-      setRounds(finalizedRounds);
+      setRounds(firstBatch);
       setGameState("playing");
     } catch (err: unknown) {
       console.error(err);
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
+      setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred.");
       setGameState("error");
     }
   };
@@ -214,17 +143,15 @@ export default function Home() {
     setSubreddits([]);
   };
 
+  const showSetup = gameState === "setup" || gameState === "error";
+
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      {gameState === "setup" && (
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 setup-bg">
+      {showSetup && (
         <GameSetup
           upvoteLimits={upvoteLimits}
-          customSubreddit={customSubreddit}
-          setCustomSubreddit={handleSetCustomSubreddit}
-          customSeed={customSeed}
-          setCustomSeed={handleSetCustomSeed}
-          isEndless={isEndless}
-          setIsEndless={setIsEndless}
+          customConfig={customConfig}
+          onConfigChange={handleConfigChange}
           onStartDaily={handleStartDaily}
           onStartCustom={handleStartCustom}
           onUpvoteLimitsChange={handleUpvoteLimitsChange}
@@ -234,7 +161,7 @@ export default function Home() {
 
       {gameState === "loading" && (
         <div className="flex flex-col items-center justify-center">
-          <div className="w-16 h-16 border-4 border-[#ff4500] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-[#ff4500] border-t-transparent rounded-full animate-spin" />
           <p className="mt-4 text-xl text-gray-300">Fetching Reddit Posts...</p>
         </div>
       )}
@@ -247,22 +174,6 @@ export default function Home() {
           subreddits={subreddits}
           upvoteLimits={upvoteLimits}
           seed={currentRunSeed}
-        />
-      )}
-
-      {gameState === "error" && (
-        <GameSetup
-          upvoteLimits={upvoteLimits}
-          customSubreddit={customSubreddit}
-          setCustomSubreddit={handleSetCustomSubreddit}
-          customSeed={customSeed}
-          setCustomSeed={handleSetCustomSeed}
-          isEndless={isEndless}
-          setIsEndless={setIsEndless}
-          onStartDaily={handleStartDaily}
-          onStartCustom={handleStartCustom}
-          onUpvoteLimitsChange={handleUpvoteLimitsChange}
-          error={errorMessage}
         />
       )}
     </main>

@@ -1,4 +1,4 @@
-import type { RedditPostRaw, RoundPost } from "./types";
+import type { RedditPostRaw } from "./types";
 
 /** Stable id for deduping and exclusion (Reddit id or title+author fallback). */
 export function getPostId(post: RedditPostRaw): string {
@@ -9,14 +9,15 @@ export function getPostId(post: RedditPostRaw): string {
 }
 
 export function collectPostIdsFromRound(round: {
-  postA: RoundPost;
-  postB: RoundPost;
+  postA: { id: string };
+  postB: { id: string };
 }): string[] {
   return [round.postA.id, round.postB.id];
 }
 
 export function collectPostIdsFromRounds(
-  rounds: Array<{ postA: RoundPost; postB: RoundPost }>,
+  rounds: Array<{ postA: { id: string }; postB: { id: string } }>,
 ): string[] {
   return rounds.flatMap(collectPostIdsFromRound);
 }
+

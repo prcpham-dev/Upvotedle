@@ -6,6 +6,12 @@ export type RoundPost = {
   body: string;
   /** Direct image URL when the post is a single image. */
   image?: string;
+  /** Reddit username of the post author. */
+  author: string;
+  /** Reddit permalink path e.g. /r/sub/comments/abc/title/ */
+  permalink: string;
+  /** Unix timestamp (seconds) when the post was created. */
+  createdAt: number;
 };
 
 export type GameRound = {
@@ -39,6 +45,8 @@ export type RedditPostRaw = {
   ups: number;
   score: number;
   author: string;
+  permalink: string;
+  created_utc: number;
   over_18: boolean;
   stickied: boolean;
   is_video: boolean;

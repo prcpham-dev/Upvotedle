@@ -86,9 +86,10 @@
 
 @media (min-width: 768px) {
   .centerOverlaySideText {
-    display: none; /* Hide side text on desktop if you want, or show it. Let's show it, just scale circle */
+    display: none;
+    /* Hide side text on desktop if you want, or show it. Let's show it, just scale circle */
   }
-  
+
   .centerCircle {
     width: 5rem;
     height: 5rem;
@@ -199,7 +200,8 @@
 }
 
 .desktopRoundText {
-  color: var(--color-correct); /* Reddit theme orange */
+  color: var(--color-correct);
+  /* Reddit theme orange */
 }
 
 .desktopSeparator {
@@ -255,8 +257,27 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.circleLoading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.96);
   }
 }
