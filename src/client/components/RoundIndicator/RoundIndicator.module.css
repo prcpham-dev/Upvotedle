@@ -1,0 +1,51 @@
+.container {
+  width: 100%;
+  padding: 16px 0;
+  margin-bottom: 8px;
+}
+
+.indicatorList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .indicatorList {
+    flex-direction: row;
+    gap: 12px;
+  }
+}
+
+.circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .circle {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.unplayed {
+  background-color: #333333;
+}
+
+.correct {
+  background-color: var(--color-correct);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-correct) 50%, transparent);
+}
+
+.wrong {
+  background-color: var(--color-wrong);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-wrong) 50%, transparent);
+}
