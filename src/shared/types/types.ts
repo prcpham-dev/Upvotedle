@@ -30,9 +30,5 @@ export interface GameBoardProps {
   onPlayAgain: () => void;
   isEndless?: boolean;
   subreddits?: string[];
-  upvoteLimits?: {
-    minUpvotes: number;
-    maxUpvotes: number;
-  };
   seed?: number | null;
 }

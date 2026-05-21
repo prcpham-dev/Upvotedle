@@ -7,11 +7,6 @@ import { fetchRoundBatch, BATCH_SIZE } from '../../lib/roundFetcher';
 
 const TOTAL_ROUNDS = 10;
 
-function buildLimitsQuery(upvoteLimits: { minUpvotes: number; maxUpvotes: number } | undefined): string {
-  if (!upvoteLimits) return 'minUpvotes=1000&maxUpvotes=1000000';
-  return `minUpvotes=${upvoteLimits.minUpvotes}&maxUpvotes=${upvoteLimits.maxUpvotes}`;
-}
-
 function getUsedPostIds(rounds: RoundData[]): Set<string> {
   const ids = new Set<string>();
   for (const r of rounds) {
@@ -26,7 +21,6 @@ export default function GameBoard({
   subreddits = [],
   seed = null,
   isEndless = false,
-  upvoteLimits,
   onPlayAgain,
 }: GameBoardProps) {
   const hasInitialRounds = initialRounds.length > 0;
@@ -46,7 +40,6 @@ export default function GameBoard({
   const [isPrefetching, setIsPrefetching] = useState(false);
   const isPrefetchingRef = useRef(false);
 
-  const limitsQuery = buildLimitsQuery(upvoteLimits);
 
   useEffect(() => {
     if (hasInitialRounds) return; // skip — game.tsx already fetched them
@@ -66,7 +59,6 @@ export default function GameBoard({
           subreddits,
           count: BATCH_SIZE,
           startRound: 1,
-          limitsQuery,
           seed: seed ?? Math.floor(Math.random() * 1_000_000),
         });
         if (cancelled) return;
@@ -102,7 +94,6 @@ export default function GameBoard({
           subreddits,
           count: 1,
           startRound: nextRoundNumber,
-          limitsQuery,
           seed: seed ?? Math.floor(Math.random() * 1_000_000),
           usedPostIds: usedIds,
         });
@@ -114,7 +105,7 @@ export default function GameBoard({
         setIsPrefetching(false);
       }
     },
-    [subreddits, limitsQuery, seed, isEndless]
+    [subreddits, seed, isEndless]
   );
 
   const handleGuess = (selected: 'A' | 'B') => {

@@ -13,18 +13,12 @@ triggers.post('/on-app-install', async (c) => {
     return c.json<TriggerResponse>(
       {
         status: 'success',
-        message: `Post created in subreddit ${context.subredditName} with id ${post.id} (trigger: ${input.type})`,
+        message: `Post created in r/${context.subredditName} with id ${post.id} (trigger: ${input.type})`,
       },
       200
     );
   } catch (error) {
-    console.error(`Error creating post: ${error}`);
-    return c.json<TriggerResponse>(
-      {
-        status: 'error',
-        message: 'Failed to create post',
-      },
-      400
-    );
+    console.error('[triggers/on-app-install] Failed:', error);
+    return c.json<TriggerResponse>({ status: 'error', message: 'Failed to create post' }, 400);
   }
 });
