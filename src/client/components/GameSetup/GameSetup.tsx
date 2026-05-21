@@ -17,7 +17,7 @@ export default function GameSetup({
   onStartCustom,
   error,
 }: GameSetupProps) {
-  const { subreddit, seed, isEndless } = customConfig;
+  const { subreddit, seed } = customConfig;
 
   return (
     <div className={styles.container}>
@@ -99,23 +99,12 @@ export default function GameSetup({
         </div>
 
         <div className={styles.actionRow}>
-          <label className={styles.endlessToggle}>
-            <input
-              type="checkbox"
-              checked={isEndless}
-              onChange={(e) => onConfigChange({ isEndless: e.target.checked })}
-              className={styles.toggleInput}
-            />
-            <span className={styles.toggleSlider} />
-            <span className={styles.endlessLabel}>Endless</span>
-          </label>
-
           <button
             type="submit"
             className={styles.playButton}
             onClick={(e) => { e.preventDefault(); onStartCustom(e); }}
           >
-            <span>Play</span>
+            <span>Play Custom Game</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 6 }}>
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>

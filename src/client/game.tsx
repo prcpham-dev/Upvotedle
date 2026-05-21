@@ -6,7 +6,7 @@ import GameSetup from './components/GameSetup/GameSetup';
 import GameBoard from './components/GameBoard/GameBoard';
 import { DAILY_SUBREDDITS } from '../shared/lib/reddit/dailySubreddits';
 import { pickSeededSample } from '../shared/lib/reddit/seededRandom';
-import { fetchRoundBatch, BATCH_SIZE } from './lib/roundFetcher';
+import { fetchRoundBatch } from './lib/roundFetcher';
 import { getApiBase } from '../shared/lib/api';
 import type { RoundData } from './types/types';
 
@@ -30,7 +30,6 @@ function App() {
     seed: '',
     isEndless: false,
   });
-  const [isEndless, setIsEndless] = useState(false);
   const [currentRunSeed, setCurrentRunSeed] = useState<number | null>(null);
   const [subreddits, setSubreddits] = useState<string[]>([]);
 
@@ -38,8 +37,7 @@ function App() {
   useEffect(() => {
     const subreddit = localStorage.getItem('redditdle_custom_subreddit') ?? '';
     const seed = localStorage.getItem('redditdle_custom_seed') ?? '';
-    const isEndless = localStorage.getItem('redditdle_custom_endless') === 'true';
-    setCustomConfig({ subreddit, seed, isEndless });
+    setCustomConfig({ subreddit, seed, isEndless: false });
 
     const startGame = localStorage.getItem('redditdle_start_game');
     if (startGame === 'true') {
@@ -48,7 +46,7 @@ function App() {
       if (mode === 'daily') {
         void handleStartDaily();
       } else {
-        void handleStartCustom(subreddit, seed, isEndless);
+        void handleStartCustom(subreddit, seed);
       }
     }
   }, []);
@@ -66,7 +64,6 @@ function App() {
   const handleStartDaily = async () => {
     setGameState('loading');
     setErrorMessage('');
-    setIsEndless(false);
     setSubreddits([]);
     setCurrentRunSeed(null);
 
@@ -93,15 +90,12 @@ function App() {
   const handleStartCustom = async (
     customSubreddit?: string,
     customSeed?: string,
-    customEndless?: boolean,
   ) => {
     const subreddit = customSubreddit ?? customConfig.subreddit;
     const seedStr = customSeed ?? customConfig.seed;
-    const endless = customEndless ?? customConfig.isEndless;
 
     setGameState('loading');
     setErrorMessage('');
-    setIsEndless(endless);
 
     const resolvedSeed = resolveSeed(seedStr);
     setCurrentRunSeed(resolvedSeed);
@@ -112,7 +106,7 @@ function App() {
     try {
       const firstBatch = await fetchRoundBatch({
         subreddits: candidates,
-        count: BATCH_SIZE,
+        count: 10,
         startRound: 1,
         seed: resolvedSeed,
       });
@@ -156,7 +150,7 @@ function App() {
         <GameBoard
           rounds={rounds}
           onPlayAgain={handlePlayAgain}
-          isEndless={isEndless}
+          isEndless={false}
           subreddits={subreddits}
           seed={currentRunSeed}
         />

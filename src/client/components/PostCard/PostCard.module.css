@@ -134,13 +134,13 @@
 }
 
 .upvoteCount {
-  font-size: 64px;
+  font-size: 52px;
   font-weight: bold;
   color: currentColor;
 }
 
 .hiddenCount {
-  font-size: 64px;
+  font-size: 52px;
   font-weight: bold;
   color: #444444;
 }
@@ -156,8 +156,8 @@
 }
 
 .upvoteArrow {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   fill: currentColor;
 }
 
@@ -217,11 +217,21 @@
   font-weight: 600;
   transition: opacity 0.2s ease;
   pointer-events: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
 }
 
 .metaLink:hover {
   opacity: 0.75;
   text-decoration: underline;
+}
+
+.metaLink.copied {
+  color: var(--color-correct) !important;
+  text-decoration: none !important;
 }
 
 /* Losing card: flip the link to losing color only */
@@ -303,6 +313,7 @@
 
 /* Portrait phone: cards are stacked, each gets ~50vh */
 @media (max-width: 768px) and (orientation: portrait) {
+
   /* Moderate padding to avoid the center VS circle without eating too much space */
   .card {
     padding-top: 16px;
@@ -322,7 +333,8 @@
     padding: 8px 12px;
     gap: 8px;
     flex: 1;
-    justify-content: flex-start; /* Keep title neatly under the image */
+    justify-content: flex-start;
+    /* Keep title neatly under the image */
   }
 
   .card.hasImage .imageContainer {
@@ -338,13 +350,15 @@
   .card.hasImage .postImage {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensures the whole image is visible, no cropping! */
+    object-fit: contain;
+    /* Ensures the whole image is visible, no cropping! */
     max-height: unset;
     opacity: 1;
   }
 
   .card.hasImage .title {
-    font-size: 15px; /* Slightly smaller to fit underneath the large image comfortably */
+    font-size: 15px;
+    /* Slightly smaller to fit underneath the large image comfortably */
     line-height: 1.3;
     -webkit-line-clamp: 3;
     text-shadow: none;

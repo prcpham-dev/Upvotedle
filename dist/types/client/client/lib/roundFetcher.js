@@ -1,71 +1,77 @@
 import { getApiBase } from '../../shared/lib/api';
 export const BATCH_SIZE = 5;
-export async function fetchRoundBatch({ subreddits, count, startRound, limitsQuery, seed, usedPostIds = new Set(), }) {
-    const excludeParam = usedPostIds.size > 0
+function buildExcludeParam(usedPostIds) {
+    return usedPostIds.size > 0
         ? `&excludePostIds=${encodeURIComponent([...usedPostIds].join(','))}`
         : '';
-    if (subreddits.length === 1) {
-        const sub = subreddits[0];
-        const roundSeed = seed + startRound;
-        const url = `${getApiBase()}/api/round?subreddit=${encodeURIComponent(sub)}&count=${count}&round=${startRound}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
+}
+async function fetchOneRound(subreddit, roundNumber, roundSeed, excludeParam) {
+    const url = `${getApiBase()}/api/round` +
+        `?subreddit=${encodeURIComponent(subreddit)}` +
+        `&round=${roundNumber}` +
+        `&seed=${roundSeed}` +
+        excludeParam;
+    try {
         const res = await fetch(url);
-        let data = null;
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            try {
-                data = await res.json();
-            }
-            catch {
-                // ignore and fallback to text
-            }
-        }
         if (!res.ok) {
-            let errMsg = `Failed to fetch rounds for r/${sub}.`;
-            if (data && (data.message || data.error)) {
-                errMsg = data.message || data.error;
+            const contentType = res.headers.get('content-type') ?? '';
+            if (contentType.includes('application/json')) {
+                const data = await res.json().catch(() => null);
+                const msg = data?.message ?? data?.error ?? `HTTP ${res.status}`;
+                throw new Error(`Server Error (${res.status}): ${msg}`);
             }
-            else {
-                const text = await res.text().catch(() => '');
-                if (text) {
-                    errMsg = text;
-                }
-            }
-            throw new Error(`Server Error (${res.status}): ${errMsg}`);
+            const text = await res.text().catch(() => '');
+            throw new Error(`Server Error (${res.status}): ${text || 'Unknown error'}`);
         }
-        if (!data || !Array.isArray(data) || data.length === 0) {
-            throw new Error(`No rounds returned for r/${sub}.`);
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('application/json'))
+            return null;
+        const data = await res.json().catch(() => null);
+        if (!data || !Array.isArray(data) || !data[0])
+            return null;
+        return { ...data[0], round: roundNumber };
+    }
+    catch (err) {
+        if (err instanceof Error && err.message.startsWith('Server Error'))
+            throw err;
+        return null;
+    }
+}
+export async function fetchRoundBatch({ subreddits, count, startRound, seed, usedPostIds = new Set(), }) {
+    const excludeParam = buildExcludeParam(usedPostIds);
+    // Optimization: if there's only 1 subreddit (custom game), fetch all rounds in a single call
+    if (subreddits.length === 1 && subreddits[0]) {
+        const sub = subreddits[0];
+        const url = `${getApiBase()}/api/round` +
+            `?subreddit=${encodeURIComponent(sub)}` +
+            `&count=${count}` +
+            `&round=${startRound}` +
+            `&seed=${seed}` +
+            excludeParam;
+        const res = await fetch(url);
+        if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            const msg = data?.message ?? `HTTP ${res.status}`;
+            throw new Error(`Server Error (${res.status}): ${msg}`);
         }
-        return data.slice(0, count).map((r, i) => ({
-            ...r,
-            round: startRound + i,
-        }));
+        const data = await res.json().catch(() => null);
+        if (data && Array.isArray(data) && data.length > 0) {
+            return data;
+        }
+        throw new Error(`Can't find 10 posts. Try a different subreddit.`);
     }
     const payload = [];
     let candidateIndex = 0;
-    while (payload.length < count && candidateIndex < subreddits.length) {
+    while (payload.length < count && candidateIndex < subreddits.length * 3) {
         const roundNumber = startRound + payload.length;
         const sub = subreddits[candidateIndex % subreddits.length];
         candidateIndex++;
-        const roundSeed = seed + roundNumber;
-        const url = `${getApiBase()}/api/round?subreddit=${encodeURIComponent(sub)}&round=${roundNumber}&${limitsQuery}&seed=${roundSeed}${excludeParam}`;
-        try {
-            const res = await fetch(url);
-            if (!res.ok)
-                continue;
-            const contentType = res.headers.get('content-type') || '';
-            if (!contentType.includes('application/json'))
-                continue;
-            const data = await res.json().catch(() => null);
-            if (!data || data.error || data.message || !Array.isArray(data) || !data[0])
-                continue;
-            payload.push({ ...data[0], round: roundNumber });
-        }
-        catch {
-            // Try next candidate subreddit
-        }
+        const round = await fetchOneRound(sub, roundNumber, seed + roundNumber, excludeParam);
+        if (round)
+            payload.push(round);
     }
     if (payload.length < count) {
-        throw new Error(`Could only build ${payload.length} of ${count} rounds. Try lowering upvote filters.`);
+        throw new Error(`Can't find 10 posts. Try a different subreddit.`);
     }
     return payload;
 }

@@ -124,6 +124,8 @@ async function fetchPooledPosts(
     }
   }
 
+  console.log(`[fetchPooledPosts] Subreddit: r/${subreddit}. Raw posts fetched: ${posts.length}. Failures: ${errors.length ? errors.join(', ') : 'none'}`);
+
   if (posts.length === 0) {
     throw new Error(
       errors.length > 0
@@ -132,7 +134,9 @@ async function fetchPooledPosts(
     );
   }
 
-  return dedupePosts(posts);
+  const deduped = dedupePosts(posts);
+  console.log(`[fetchPooledPosts] Deduplicated posts count: ${deduped.length}`);
+  return deduped;
 }
 
 // Only exclude posts that are truly unplayable: NSFW, deleted, or stickied.
@@ -151,38 +155,48 @@ function filterEligiblePosts(
   });
 }
 
-function buildRound(
-  subreddit: string,
-  picked: RedditPostRaw[],
-  roundNumber: number,
-): GameRoundPayload {
-  const [postA, postB] = picked as [RedditPostRaw, RedditPostRaw];
-  return [{ round: roundNumber, subreddit: formatSubreddit(subreddit), postA: toRoundPost(postA), postB: toRoundPost(postB) }];
-}
 
 /**
- * Fetches a single game round for the given subreddit.
+ * Fetches game rounds for the given subreddit.
  *
  * Min upvote fallback tiers: 1000 → 500 → 0
  * Max upvotes is always 1,000,000 (no cap).
- * Tries each tier in order until 2 eligible posts are found.
+ * Tries each tier in order until enough eligible posts are found to build the requested rounds.
  */
 export async function fetchGameRound(
   subreddit: string,
   options: FetchRoundOptions = {},
+  count = 1,
 ): Promise<GameRoundPayload> {
   const excludeIds = new Set(options.excludePostIds ?? []);
   const roundNumber = options.round ?? 1;
   const random = options.seed != null ? createSeededRandom(options.seed) : Math.random;
 
+  console.log(`[fetchGameRound] Subreddit: r/${subreddit}, count requested: ${count}, posts needed: ${count * 2}`);
+
   // Fetch the post pool once — reuse across min upvote tiers
   const posts = await fetchPooledPosts(subreddit, options);
+  const postsNeeded = count * 2;
 
   for (const minUpvotes of MIN_UPVOTE_TIERS) {
     const eligible = filterEligiblePosts(posts, minUpvotes, excludeIds);
-    if (eligible.length >= 2) {
-      const picked = pickRandom(eligible, 2, random);
-      return buildRound(subreddit, picked, roundNumber);
+    console.log(`[fetchGameRound] Tier minUpvotes=${minUpvotes}: found ${eligible.length} eligible posts (need ${postsNeeded})`);
+    
+    if (eligible.length >= postsNeeded) {
+      const picked = pickRandom(eligible, postsNeeded, random);
+      const formattedSub = formatSubreddit(subreddit);
+      
+      console.log(`[fetchGameRound] Successfully built ${count} rounds using tier minUpvotes=${minUpvotes}`);
+      return Array.from({ length: count }, (_, index) => {
+        const postA = picked[index * 2] as RedditPostRaw;
+        const postB = picked[index * 2 + 1] as RedditPostRaw;
+        return {
+          round: roundNumber + index,
+          subreddit: formattedSub,
+          postA: toRoundPost(postA),
+          postB: toRoundPost(postB),
+        };
+      });
     }
   }
 

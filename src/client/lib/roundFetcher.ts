@@ -64,6 +64,31 @@ export async function fetchRoundBatch({
   usedPostIds = new Set(),
 }: FetchRoundBatchOptions): Promise<RoundData[]> {
   const excludeParam = buildExcludeParam(usedPostIds);
+
+  // Optimization: if there's only 1 subreddit (custom game), fetch all rounds in a single call
+  if (subreddits.length === 1 && subreddits[0]) {
+    const sub = subreddits[0];
+    const url =
+      `${getApiBase()}/api/round` +
+      `?subreddit=${encodeURIComponent(sub)}` +
+      `&count=${count}` +
+      `&round=${startRound}` +
+      `&seed=${seed}` +
+      excludeParam;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      const msg = data?.message ?? `HTTP ${res.status}`;
+      throw new Error(`Server Error (${res.status}): ${msg}`);
+    }
+    const data = await res.json().catch(() => null);
+    if (data && Array.isArray(data) && data.length > 0) {
+      return data as RoundData[];
+    }
+    throw new Error(`Can't find 10 posts. Try a different subreddit.`);
+  }
+
   const payload: RoundData[] = [];
   let candidateIndex = 0;
 

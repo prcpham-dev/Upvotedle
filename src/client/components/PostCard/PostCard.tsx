@@ -65,10 +65,49 @@ function useCountUp(target: number, active: boolean, duration = 1500) {
 
 export default function PostCard({ post, onClick, showUpvotes, status = 'none' }: PostCardProps) {
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (post.image) setIsImageLoading(true);
   }, [post.image]);
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!redditLink) return;
+
+    let success = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(redditLink);
+        success = true;
+      }
+    } catch (err) {
+      console.warn('Clipboard API failed, using fallback', err);
+    }
+
+    if (!success) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = redditLink;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+    }
+
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const animatedUpvotes = useCountUp(post.upvotes, showUpvotes);
 
@@ -129,7 +168,6 @@ export default function PostCard({ post, onClick, showUpvotes, status = 'none' }
       </div>
 
       <div className={styles.upvotesContainer}>
-        <p className={styles.upvoteLabel}>Upvotes</p>
         {showUpvotes ? (
           <>
             <div className={upvoteRowClass}>
@@ -147,15 +185,13 @@ export default function PostCard({ post, onClick, showUpvotes, status = 'none' }
                 <span className={styles.metaDate}>{relativeTime(post.createdAt)}</span>
               )}
               {redditLink && (
-                <a
-                  href={redditLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.metaLink}
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  type="button"
+                  className={`${styles.metaLink} ${copied ? styles.copied : ''}`}
+                  onClick={handleCopyLink}
                 >
-                  View on Reddit ↗
-                </a>
+                  {copied ? 'Copied! ✓' : 'Copy Link 📋'}
+                </button>
               )}
             </div>
           </>

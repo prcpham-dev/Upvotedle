@@ -24,7 +24,6 @@ function getDateKeyOffset(daysAgo: number): string {
  */
 scheduler.post('/daily-crawl', async (c) => {
   const todayKey = `daily:${getDateKeyOffset(0)}`;
-  const yesterdayKey = `daily:${getDateKeyOffset(1)}`;
 
   // Keys to delete: the 7 days before yesterday (belt-and-suspenders cleanup)
   const keysToDelete = Array.from({ length: 7 }, (_, i) =>

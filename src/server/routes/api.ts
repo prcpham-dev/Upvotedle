@@ -66,8 +66,12 @@ api.get('/round', async (c) => {
     );
   }
 
+  const countParam = c.req.query('count');
+  const count = countParam ? Number.parseInt(countParam, 10) : 1;
+  const parsedCount = Number.isFinite(count) && count > 0 ? count : 1;
+
   try {
-    const payload = await fetchGameRound(subreddit, parseRoundOptions(c));
+    const payload = await fetchGameRound(subreddit, parseRoundOptions(c), parsedCount);
     return c.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to build game round';

@@ -3,13 +3,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './GameBoard.module.css';
 import PostCard from '../PostCard/PostCard';
 import RoundIndicator from '../RoundIndicator/RoundIndicator';
-import { fetchRoundBatch, BATCH_SIZE } from '../../lib/roundFetcher';
+import { fetchRoundBatch } from '../../lib/roundFetcher';
 const TOTAL_ROUNDS = 10;
-function buildLimitsQuery(upvoteLimits) {
-    if (!upvoteLimits)
-        return 'minUpvotes=1000&maxUpvotes=1000000';
-    return `minUpvotes=${upvoteLimits.minUpvotes}&maxUpvotes=${upvoteLimits.maxUpvotes}`;
-}
 function getUsedPostIds(rounds) {
     const ids = new Set();
     for (const r of rounds) {
@@ -18,7 +13,7 @@ function getUsedPostIds(rounds) {
     }
     return ids;
 }
-export default function GameBoard({ rounds: initialRounds = [], subreddits = [], seed = null, isEndless = false, upvoteLimits, onPlayAgain, }) {
+export default function GameBoard({ rounds: initialRounds = [], subreddits = [], seed = null, isEndless = false, onPlayAgain, }) {
     const hasInitialRounds = initialRounds.length > 0;
     const [rounds, setRounds] = useState(initialRounds);
     const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
@@ -28,10 +23,8 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
     // Loading states — skip initial load if rounds were passed in from props
     const [isInitialLoading, setIsInitialLoading] = useState(!hasInitialRounds);
     const [loadError, setLoadError] = useState(null);
-    const [prefetchedRound, setPrefetchedRound] = useState(null);
     const [isPrefetching, setIsPrefetching] = useState(false);
     const isPrefetchingRef = useRef(false);
-    const limitsQuery = buildLimitsQuery(upvoteLimits);
     useEffect(() => {
         if (hasInitialRounds)
             return; // skip — game.tsx already fetched them
@@ -47,9 +40,8 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
             try {
                 const initial = await fetchRoundBatch({
                     subreddits,
-                    count: BATCH_SIZE,
+                    count: isEndless ? 5 : 10,
                     startRound: 1,
-                    limitsQuery,
                     seed: seed ?? Math.floor(Math.random() * 1_000_000),
                 });
                 if (cancelled)
@@ -71,35 +63,32 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    const prefetchNext = useCallback(async (allRounds) => {
+    const fetchMoreEndlessRounds = useCallback(async (currentRounds) => {
         if (isPrefetchingRef.current)
-            return;
-        const nextRoundNumber = allRounds.length + 1;
-        // Non-endless: stop prefetching once we have enough rounds
-        if (!isEndless && nextRoundNumber > TOTAL_ROUNDS)
             return;
         isPrefetchingRef.current = true;
         setIsPrefetching(true);
+        const nextRoundNumber = currentRounds.length + 1;
+        const usedIds = getUsedPostIds(currentRounds);
         try {
-            const usedIds = getUsedPostIds(allRounds);
-            const [next] = await fetchRoundBatch({
+            const nextRounds = await fetchRoundBatch({
                 subreddits,
-                count: 1,
+                count: 2,
                 startRound: nextRoundNumber,
-                limitsQuery,
                 seed: seed ?? Math.floor(Math.random() * 1_000_000),
                 usedPostIds: usedIds,
             });
-            setPrefetchedRound(next ?? null);
+            setRounds((prev) => [...prev, ...nextRounds]);
+            setRoundStatuses((prev) => [...prev, ...new Array(nextRounds.length).fill('unplayed')]);
         }
-        catch {
-            setPrefetchedRound(null);
+        catch (err) {
+            console.error('Failed to prefetch endless rounds:', err);
         }
         finally {
             isPrefetchingRef.current = false;
             setIsPrefetching(false);
         }
-    }, [subreddits, limitsQuery, seed, isEndless]);
+    }, [subreddits, seed]);
     const handleGuess = (selected) => {
         if (hasGuessed || rounds.length === 0)
             return;
@@ -115,9 +104,8 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
             return next;
         });
         setHasGuessed(true);
-        const shouldPrefetch = isEndless ? isCorrect : true;
-        if (shouldPrefetch && !prefetchedRound) {
-            void prefetchNext(rounds);
+        if (isEndless && isCorrect) {
+            void fetchMoreEndlessRounds(rounds);
         }
     };
     const handleNextRound = async () => {
@@ -126,35 +114,12 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
             setIsEndlessGameOver(true);
             return;
         }
-        const isLastRound = !isEndless && currentRoundIndex + 1 >= TOTAL_ROUNDS;
-        if (isLastRound) {
-            setHasGuessed(false);
-            setCurrentRoundIndex((prev) => prev + 1);
-            return;
-        }
         const nextIndex = currentRoundIndex + 1;
         if (nextIndex < rounds.length) {
             setHasGuessed(false);
             setCurrentRoundIndex(nextIndex);
-            if (!prefetchedRound && !isPrefetchingRef.current) {
-                void prefetchNext(rounds);
-            }
             return;
         }
-        let nextRound = prefetchedRound;
-        if (!nextRound) {
-            if (!isPrefetchingRef.current) {
-                await prefetchNext(rounds);
-            }
-            return;
-        }
-        const updatedRounds = [...rounds, nextRound];
-        setRounds(updatedRounds);
-        setRoundStatuses((prev) => [...prev, 'unplayed']);
-        setPrefetchedRound(null);
-        setHasGuessed(false);
-        setCurrentRoundIndex(nextIndex);
-        void prefetchNext(updatedRounds);
     };
     if (isInitialLoading) {
         return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("div", { className: "w-16 h-16 border-4 border-[#ff4500] border-t-transparent rounded-full animate-spin" }), _jsx("p", { className: "mt-4 text-xl text-gray-300", children: "Loading rounds..." })] }));
@@ -187,7 +152,7 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
         const otherPost = post === 'A' ? postB : postA;
         return thisPost.upvotes >= otherPost.upvotes ? 'winner' : 'loser';
     };
-    const nextButtonBusy = hasGuessed && isPrefetching && !prefetchedRound && isEndless;
+    const nextButtonBusy = hasGuessed && isPrefetching && (currentRoundIndex + 1 >= rounds.length) && isEndless;
     const nextLabel = nextButtonBusy
         ? 'Loading...'
         : isEndless && roundStatuses[currentRoundIndex] === 'wrong'
