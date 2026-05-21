@@ -1,38 +1,27 @@
-# Redditdle
+## Devvit React Starter
 
-Redditdle is a **Higher-Lower** game built for Reddit posts. Players are presented with two different Reddit posts side-by-side and must guess which post has a higher upvote count.
+A starter to build web applications on Reddit's developer platform
 
-## Core Game Mechanics
+- [Devvit](https://developers.reddit.com/): A way to build and deploy immersive games on Reddit
+- [Vite](https://vite.dev/): For compiling the webView
+- [React](https://react.dev/): For UI
+- [Hono](https://hono.dev/): For backend logic
+- [Tailwind](https://tailwindcss.com/): For styles
+- [TypeScript](https://www.typescriptlang.org/): For type safety
 
-*   **Higher / Lower Guessing**: Compare two Reddit posts and tap on the card you believe has more upvotes.
-*   **Daily Puzzle**: Play a pre-selected 10-round set that resets daily. Every user globally gets the exact same set of challenges each day.
-*   **Custom Games**:
-    *   **Custom Subreddit**: Test your knowledge of specific communities (e.g., `r/BeAmazed`, `r/CrappyDesign`, or `r/mildlyinteresting`).
-    *   **Deterministic Seeding**: Enter a custom seed to generate a repeatable set of rounds. Share your seed with friends to see who can get the higher score on the same challenges!
-    *   **Endless Mode**: Play infinitely until you make a single wrong guess.
-*   **Upvote Limits**: Customize the game's difficulty by configuring the minimum and maximum upvote thresholds in the settings dashboard.
+## Getting Started
 
+> Make sure you have Node 22 downloaded on your machine before running!
 
-## Codebase Structure
+1. Run `npm create devvit@latest --template=react`
+2. Go through the installation wizard. You will need to create a Reddit account and connect it to Reddit developers
+3. Copy the command on the success page into your terminal
 
-The project is built using **Next.js (App Router)**, **TypeScript**, and modular **Vanilla CSS**.
+## Commands
 
-```text
-├── app/
-│   ├── api/
-│   │   ├── daily/           # Handles the daily puzzle server-side logic
-│   │   └── round/           # Fetches and processes individual game rounds
-│   ├── page.tsx             # Main client entry point and game setup control flow
-│   └── layout.tsx           # Global HTML metadata and font loader
-├── components/              # Handel ui/ux
-├── lib/
-│   ├── reddit/              # Main Reddit logic engine
-│   └── settings.ts          # Store settings
-├── types/                   # Global TypeScript types
-```
-
-
-## Author
-* [Percy Pham](https://github.com/prcpham-dev)
-* [Minh Pham](https://github.com/Bubseatbubs)
-* [Danny Pham](https://github.com/PhamDanny)
+- `npm run dev`: Starts a development server where you can develop your application live on Reddit.
+- `npm run build`: Builds your client and server projects
+- `npm run deploy`: Uploads a new version of your app
+- `npm run launch`: Publishes your app for review
+- `npm run login`: Logs your CLI into Reddit
+- `npm run type-check`: Type checks, lints, and prettifies your app
