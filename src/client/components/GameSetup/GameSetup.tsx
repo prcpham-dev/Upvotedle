@@ -21,7 +21,7 @@ export default function GameSetup({
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Redditdle</h1>
+      <h1 className={styles.title}>Upvotedle</h1>
       <p className={styles.subtitle}>Which post has more upvotes?</p>
 
       {error && (
