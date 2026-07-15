@@ -144,3 +144,7 @@ export function playSound(soundFile: string, volume = 1) {
 void preloadSound('ButtonClick.mp3');
 void preloadSound('Correct.mp3');
 void preloadSound('Wrong.mp3');
+void preloadSound('Defeat.mp3');
+void preloadSound('Win.mp3');
+void preloadSound('SuperWin.mp3');
+void preloadSound('PerfectWin.mp3');

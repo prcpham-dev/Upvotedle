@@ -269,6 +269,23 @@ export default function GameBoard({
     }
 
     const correctCount = roundStatuses.filter((s) => s === 'correct').length;
+    
+    if (correctCount <= 3)
+    {
+      playSound('Defeat.mp3');
+    }
+    else if (correctCount <= 6)
+    {
+      playSound('Win.mp3');
+    }
+    else if (correctCount <= 9)
+    {
+      playSound('SuperWin.mp3');
+    }
+    else {
+      playSound('PerfectWin.mp3');
+    }
+
     return (
       <div className={styles.pageWrapper}>
         <img
