@@ -2,8 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './GameBoard.module.css';
 import type { RoundData, GameBoardProps } from '../../types/types';
 import PostCard from '../PostCard/PostCard';
+import otherGuy from '../../../../public/other_guy.png';
+import someGuy from '../../../../public/some_guy.png';
 import RoundIndicator, { type RoundStatus } from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
+import { getApiBase } from '../../../shared/lib/api';
 
 const TOTAL_ROUNDS = 10;
 
@@ -16,12 +19,19 @@ function getUsedPostIds(rounds: RoundData[]): Set<string> {
   return ids;
 }
 
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function GameBoard({
   rounds: initialRounds = [],
   subreddits = [],
   seed = null,
   isEndless = false,
   onPlayAgain,
+  isDaily = false,
 }: GameBoardProps) {
   const hasInitialRounds = initialRounds.length > 0;
 
@@ -33,11 +43,78 @@ export default function GameBoard({
   const [hasGuessed, setHasGuessed] = useState(false);
   const [isEndlessGameOver, setIsEndlessGameOver] = useState(false);
 
+  const [startTime] = useState(() => Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  const [leaderboard, setLeaderboard] = useState<{ username: string; points: number; time: number }[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
   // Loading states — skip initial load if rounds were passed in from props
   const [isInitialLoading, setIsInitialLoading] = useState(!hasInitialRounds);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = useState(false);
   const isPrefetchingRef = useRef(false);
+
+  const isGameOver = isEndless
+    ? isEndlessGameOver
+    : currentRoundIndex >= TOTAL_ROUNDS;
+
+  useEffect(() => {
+    if (isInitialLoading || isGameOver) return;
+
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isInitialLoading, isGameOver, startTime]);
+
+  useEffect(() => {
+    if (isGameOver && !isEndless) {
+      const correctCount = roundStatuses.filter((s) => s === 'correct').length;
+      const today = new Date().toDateString();
+
+      if (isDaily) {
+        const existing = localStorage.getItem(`upvotedle_daily_result_${today}`);
+        if (!existing) {
+          localStorage.setItem(
+            `upvotedle_daily_result_${today}`,
+            JSON.stringify({
+              correct: correctCount,
+              total: TOTAL_ROUNDS,
+              time: formatTime(elapsedTime),
+            })
+          );
+        }
+      }
+
+      // Submit score to Redis and fetch leaderboard
+      const submitAndFetch = async () => {
+        setIsLoadingLeaderboard(true);
+        try {
+          // Submit score
+          await fetch(`${getApiBase()}/api/leaderboard/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ score: correctCount, time: elapsedTime, isDaily }),
+          });
+
+          // Fetch leaderboard
+          const res = await fetch(`${getApiBase()}/api/leaderboard?isDaily=${isDaily}`);
+          if (res.ok) {
+            const data = await res.json() as { username: string; points: number; time: number }[];
+            setLeaderboard(data);
+          }
+        } catch (e) {
+          console.error('[leaderboard] Failed:', e);
+        } finally {
+          setIsLoadingLeaderboard(false);
+        }
+      };
+
+      void submitAndFetch();
+    }
+  }, [isGameOver, isDaily, isEndless, roundStatuses, elapsedTime]);
 
   useEffect(() => {
     if (hasInitialRounds) return; // skip — game.tsx already fetched them
@@ -162,10 +239,6 @@ export default function GameBoard({
     );
   }
 
-  const isGameOver = isEndless
-    ? isEndlessGameOver
-    : currentRoundIndex >= TOTAL_ROUNDS;
-
   if (isGameOver) {
     if (isEndless) {
       return (
@@ -173,6 +246,9 @@ export default function GameBoard({
           <h2 className={styles.gameOverTitle}>Endless Game Over!</h2>
           <p className={styles.gameOverScore}>
             You completed {currentRoundIndex} rounds before failing!
+          </p>
+          <p className={styles.gameOverScore} style={{ marginTop: '0.25rem' }}>
+            Time Played: <strong>{formatTime(elapsedTime)}</strong>
           </p>
           {seed !== null && seed !== undefined && (
             <p className={styles.gameOverSeed}>
@@ -188,19 +264,73 @@ export default function GameBoard({
 
     const correctCount = roundStatuses.filter((s) => s === 'correct').length;
     return (
-      <div className={styles.gameOverContainer}>
-        <h2 className={styles.gameOverTitle}>Game Over!</h2>
-        <p className={styles.gameOverScore}>
-          You got {correctCount} out of {TOTAL_ROUNDS} correct.
-        </p>
-        {seed !== null && seed !== undefined && (
-          <p className={styles.gameOverSeed}>
-            Seed: <strong className={styles.highlightSeed}>{seed}</strong>
+      <div className={styles.pageWrapper}>
+        <img
+          src={otherGuy}
+          alt="illustration left"
+          className={`${styles.illustration} ${styles.leftIllustration}`}
+        />
+
+        <div className={styles.gameOverContainer}>
+          <h2 className={styles.gameOverTitle}>Game Over!</h2>
+          <p className={styles.gameOverScore} style={{ marginBottom: '8px' }}>
+            You got {correctCount} out of {TOTAL_ROUNDS} correct.
           </p>
-        )}
-        <button onClick={onPlayAgain} className={styles.gameOverButton}>
-          Play Again
-        </button>
+          <p className={styles.gameOverScore} style={{ marginTop: '0.25rem', marginBottom: '24px' }}>
+            Time: <strong>{formatTime(elapsedTime)}</strong>
+          </p>
+
+          {(isDaily || !isEndless) && (
+            <div className={styles.leaderboardSection}>
+              <h3 className={styles.leaderboardTitle}>
+                {isDaily ? "Today's Leaderboard" : "Custom Leaderboard"}
+              </h3>
+              {isLoadingLeaderboard ? (
+                <p className={styles.leaderboardStatus}>Loading leaderboard...</p>
+              ) : leaderboard.length === 0 ? (
+                <p className={styles.leaderboardStatus}>No entries yet.</p>
+              ) : (
+                <div className={styles.leaderboardTableWrapper}>
+                  <table className={styles.leaderboardTable}>
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>Score</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboard.map((entry, idx) => (
+                        <tr key={idx}>
+                          <td className={styles.leaderboardRank}>#{idx + 1}</td>
+                          <td className={styles.leaderboardUser}>{entry.username}</td>
+                          <td>{entry.points}</td>
+                          <td>{formatTime(entry.time)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {seed !== null && seed !== undefined && (
+            <p className={styles.gameOverSeed}>
+              Seed: <strong className={styles.highlightSeed}>{seed}</strong>
+            </p>
+          )}
+          <button onClick={onPlayAgain} className={styles.gameOverButton} style={{ marginTop: '24px' }}>
+            Play Again
+          </button>
+        </div>
+
+        <img
+          src={someGuy}
+          alt="illustration right"
+          className={`${styles.illustration} ${styles.rightIllustration}`}
+        />
       </div>
     );
   }
@@ -235,6 +365,11 @@ export default function GameBoard({
 
   return (
     <div className={`fixed inset-0 overflow-y-auto overflow-x-hidden md:overflow-hidden ${styles.boardRoot}`}>
+      {/* Mobile-only floating timer badge */}
+      <div className={styles.mobileTimerBadge}>
+        {formatTime(elapsedTime)}
+      </div>
+
       <div className="relative flex flex-col md:flex-row min-h-[100dvh] w-full">
         {/* Header */}
         <div className={`pointer-events-none z-50 ${styles.roundIndicatorContainer}`}>
@@ -243,6 +378,8 @@ export default function GameBoard({
             <span className={styles.desktopRoundText}>Round {currentRound.round}</span>
             <span className={styles.desktopSeparator}>•</span>
             <span className={styles.desktopSubredditText}>{currentRound.subreddit}</span>
+            <span className={styles.desktopSeparator}>•</span>
+            <span className={styles.desktopTimerText}>{formatTime(elapsedTime)}</span>
           </div>
           {!isEndless && (
             <RoundIndicator

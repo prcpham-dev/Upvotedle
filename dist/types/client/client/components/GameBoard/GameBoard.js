@@ -117,11 +117,8 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
             return;
         }
         const nextIndex = currentRoundIndex + 1;
-        if (nextIndex < rounds.length) {
-            setHasGuessed(false);
-            setCurrentRoundIndex(nextIndex);
-            return;
-        }
+        setHasGuessed(false);
+        setCurrentRoundIndex(nextIndex);
     };
     if (isInitialLoading) {
         return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("div", { className: "w-16 h-16 border-4 border-[#ff4500] border-t-transparent rounded-full animate-spin" }), _jsx("p", { className: "mt-4 text-xl text-gray-300", children: "Loading rounds..." })] }));
@@ -160,16 +157,23 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
         : isEndless && roundStatuses[currentRoundIndex] === 'wrong'
             ? 'Score'
             : 'Next';
-    return (_jsxs("div", { className: `fixed inset-0 flex flex-col md:flex-row overflow-hidden ${styles.boardRoot}`, children: [_jsx("div", { className: `pointer-events-none z-50 ${styles.roundIndicatorContainer}`, children: _jsxs("div", { className: "pointer-events-auto flex flex-col items-center", children: [_jsxs("div", { className: styles.desktopHeaderInfo, children: [_jsxs("span", { className: styles.desktopRoundText, children: ["Round ", currentRound.round] }), _jsx("span", { className: styles.desktopSeparator, children: "\u2022" }), _jsx("span", { className: styles.desktopSubredditText, children: currentRound.subreddit })] }), !isEndless && (_jsx(RoundIndicator, { rounds: [
-                                ...roundStatuses.slice(0, TOTAL_ROUNDS),
-                                ...new Array(Math.max(0, TOTAL_ROUNDS - roundStatuses.length)).fill('unplayed'),
-                            ] }))] }) }), _jsx("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none z-40", children: _jsxs("div", { className: styles.centerOverlayLayout, children: [_jsx("div", { className: styles.centerOverlaySideText, children: _jsxs("span", { className: styles.roundText, children: ["Round ", currentRound.round] }) }), hasGuessed ? (_jsx("div", { className: `pointer-events-auto ${styles.centerCircle} ${roundStatuses[currentRoundIndex] === 'correct'
+    return (_jsx("div", { className: `fixed inset-0 overflow-y-auto overflow-x-hidden md:overflow-hidden ${styles.boardRoot}`, children: _jsxs("div", { className: "relative flex flex-col md:flex-row min-h-[100dvh] w-full", children: [_jsx("div", { className: `pointer-events-none z-50 ${styles.roundIndicatorContainer}`, children: _jsxs("div", { className: "pointer-events-auto flex flex-col items-center", children: [_jsxs("div", { className: styles.desktopHeaderInfo, children: [_jsxs("span", { className: styles.desktopRoundText, children: ["Round ", currentRound.round] }), _jsx("span", { className: styles.desktopSeparator, children: "\u2022" }), _jsx("span", { className: styles.desktopSubredditText, children: currentRound.subreddit })] }), !isEndless && (_jsx(RoundIndicator, { rounds: [
+                                    ...roundStatuses.slice(0, TOTAL_ROUNDS),
+                                    ...new Array(Math.max(0, TOTAL_ROUNDS - roundStatuses.length)).fill('unplayed'),
+                                ] }))] }) }), _jsx("div", { className: `${styles.centerOverlay} pointer-events-none z-40`, children: _jsxs("div", { className: styles.centerOverlayLayout, children: [_jsx("div", { className: styles.centerOverlaySideText, children: _jsxs("span", { className: styles.roundText, children: ["Round ", currentRound.round] }) }), hasGuessed ? (_jsx("div", { className: `pointer-events-auto ${styles.centerCircle} ${roundStatuses[currentRoundIndex] === 'correct'
+                                    ? styles.circleCorrect
+                                    : styles.circleWrong} ${nextButtonBusy ? styles.circleLoading : ''}`, onClick: !nextButtonBusy ? () => void handleNextRound() : undefined, role: "button", tabIndex: 0, "aria-disabled": nextButtonBusy, onKeyDown: (e) => {
+                                    if (!nextButtonBusy && (e.key === 'Enter' || e.key === ' ')) {
+                                        e.preventDefault();
+                                        void handleNextRound();
+                                    }
+                                }, children: _jsx("span", { className: styles.vsText, children: nextLabel }) })) : (_jsx("div", { className: `pointer-events-auto ${styles.centerCircle}`, children: _jsx("span", { className: styles.vsText, children: "VS" }) })), _jsx("div", { className: styles.centerOverlaySideText, children: _jsx("span", { className: styles.subredditText, children: currentRound.subreddit }) })] }) }), _jsx("div", { className: `flex flex-col w-full min-h-[42vh] relative md:flex-1 md:min-h-0 ${styles.leftCard} ${styles.fadeIn}`, children: _jsx(PostCard, { post: postA, onClick: () => handleGuess('A'), showUpvotes: hasGuessed, status: getPostStatus('A') }) }, `left-${currentRoundIndex}`), _jsxs("div", { className: styles.mobileDivider, children: [_jsxs("span", { className: styles.mobileDividerRound, children: ["Round ", currentRound.round] }), hasGuessed ? (_jsx("div", { className: `${styles.centerCircle} ${roundStatuses[currentRoundIndex] === 'correct'
                                 ? styles.circleCorrect
                                 : styles.circleWrong} ${nextButtonBusy ? styles.circleLoading : ''}`, onClick: !nextButtonBusy ? () => void handleNextRound() : undefined, role: "button", tabIndex: 0, "aria-disabled": nextButtonBusy, onKeyDown: (e) => {
                                 if (!nextButtonBusy && (e.key === 'Enter' || e.key === ' ')) {
                                     e.preventDefault();
                                     void handleNextRound();
                                 }
-                            }, children: _jsx("span", { className: styles.vsText, children: nextLabel }) })) : (_jsx("div", { className: `pointer-events-auto ${styles.centerCircle}`, children: _jsx("span", { className: styles.vsText, children: "VS" }) })), _jsx("div", { className: styles.centerOverlaySideText, children: _jsx("span", { className: styles.subredditText, children: currentRound.subreddit }) })] }) }), _jsx("div", { className: `flex-1 min-h-0 w-full relative ${styles.leftCard} ${styles.fadeIn}`, children: _jsx(PostCard, { post: postA, onClick: () => handleGuess('A'), showUpvotes: hasGuessed, status: getPostStatus('A') }) }, `left-${currentRoundIndex}`), _jsx("div", { className: `flex-1 min-h-0 w-full relative ${styles.fadeIn}`, children: _jsx(PostCard, { post: postB, onClick: () => handleGuess('B'), showUpvotes: hasGuessed, status: getPostStatus('B') }) }, `right-${currentRoundIndex}`)] }));
+                            }, children: _jsx("span", { className: styles.vsText, children: nextLabel }) })) : (_jsx("div", { className: styles.centerCircle, children: _jsx("span", { className: styles.vsText, children: "VS" }) })), _jsx("span", { className: styles.mobileDividerSubreddit, children: currentRound.subreddit })] }), _jsx("div", { className: `flex flex-col w-full min-h-[42vh] relative md:flex-1 md:min-h-0 ${styles.fadeIn}`, children: _jsx(PostCard, { post: postB, onClick: () => handleGuess('B'), showUpvotes: hasGuessed, status: getPostStatus('B') }) }, `right-${currentRoundIndex}`)] }) }));
 }
 //# sourceMappingURL=GameBoard.js.map

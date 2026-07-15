@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { redis } from '@devvit/web/server';
+import { redis, reddit } from '@devvit/web/server';
 import { parseExcludePostIds } from '../../shared/lib/reddit/parseMaxUpvotes';
 import { fetchDailyPuzzle } from '../reddit/fetchDaily';
 import { fetchGameRound } from '../reddit/fetchRound';
@@ -76,5 +76,92 @@ api.get('/round', async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to build game round';
     return c.json<ErrorResponse>({ status: 'error', message }, 502);
+  }
+});
+
+// POST /api/leaderboard/submit
+api.post('/leaderboard/submit', async (c) => {
+  try {
+    const body = await c.req.json() as { score: number; time: number; isDaily?: boolean };
+    const { score, time, isDaily } = body;
+    if (typeof score !== 'number' || typeof time !== 'number') {
+      return c.json({ status: 'error', message: 'Invalid payload' }, 400);
+    }
+
+    const user = await reddit.getCurrentUser();
+    const username = user?.username ?? 'Anonymous';
+
+    const dateKey = getDailyDateKey();
+    const key = isDaily ? `leaderboard:daily:${dateKey}` : 'leaderboard:custom';
+
+    let list: { username: string; points: number; time: number; timestamp: number }[] = [];
+    try {
+      const cached = await redis.get(key);
+      if (cached) {
+        list = JSON.parse(cached);
+      }
+    } catch {
+      // Ignore
+    }
+
+    const existingIndex = list.findIndex((item) => item.username === username);
+    if (existingIndex !== -1) {
+      if (isDaily) {
+        return c.json({ status: 'success', message: 'Daily score already submitted' });
+      } else {
+        const existing = list[existingIndex];
+        if (existing) {
+          const isNewScoreBetter = 
+            score > existing.points || 
+            (score === existing.points && time < existing.time);
+          
+          if (isNewScoreBetter) {
+            list[existingIndex] = { username, points: score, time, timestamp: Date.now() };
+          } else {
+            return c.json({ status: 'success', message: 'Existing custom score is better' });
+          }
+        }
+      }
+    } else {
+      list.push({ username, points: score, time, timestamp: Date.now() });
+    }
+
+    list.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (a.time !== b.time) return a.time - b.time;
+      return a.timestamp - b.timestamp;
+    });
+
+    const top10 = list.slice(0, 10);
+    await redis.set(key, JSON.stringify(top10));
+
+    return c.json({ status: 'success', leaderboard: top10 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to submit score';
+    return c.json({ status: 'error', message }, 500);
+  }
+});
+
+// GET /api/leaderboard
+api.get('/leaderboard', async (c) => {
+  try {
+    const isDaily = c.req.query('isDaily') === 'true';
+    const dateKey = getDailyDateKey();
+    const key = isDaily ? `leaderboard:daily:${dateKey}` : 'leaderboard:custom';
+
+    let list = [];
+    try {
+      const cached = await redis.get(key);
+      if (cached) {
+        list = JSON.parse(cached);
+      }
+    } catch {
+      
+    }
+
+    return c.json(list);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get leaderboard';
+    return c.json({ status: 'error', message }, 500);
   }
 });
