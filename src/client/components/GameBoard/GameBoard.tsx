@@ -4,6 +4,7 @@ import type { RoundData, GameBoardProps } from '../../types/types';
 import PostCard from '../PostCard/PostCard';
 import RoundIndicator, { type RoundStatus } from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
+import { playSound } from '../Audio/soundEffects'
 
 const TOTAL_ROUNDS = 10;
 
@@ -115,6 +116,11 @@ export default function GameBoard({
     const selectedPost = selected === 'A' ? currentRound.postA : currentRound.postB;
     const otherPost = selected === 'A' ? currentRound.postB : currentRound.postA;
     const isCorrect = selectedPost.upvotes >= otherPost.upvotes;
+
+    playSound('ButtonClick.mp3');
+    if (isCorrect) {
+      playSound('Correct.mp3');
+    }
 
     setRoundStatuses((prev) => {
       const next = [...prev];
