@@ -2,8 +2,11 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './GameBoard.module.css';
 import PostCard from '../PostCard/PostCard';
+import otherGuy from '../../../../public/other_guy.png';
+import someGuy from '../../../../public/some_guy.png';
 import RoundIndicator from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
+import { getApiBase } from '../../../shared/lib/api';
 const TOTAL_ROUNDS = 10;
 function getUsedPostIds(rounds) {
     const ids = new Set();
@@ -13,18 +16,79 @@ function getUsedPostIds(rounds) {
     }
     return ids;
 }
-export default function GameBoard({ rounds: initialRounds = [], subreddits = [], seed = null, isEndless = false, onPlayAgain, }) {
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+export default function GameBoard({ rounds: initialRounds = [], subreddits = [], seed = null, isEndless = false, onPlayAgain, isDaily = false, }) {
     const hasInitialRounds = initialRounds.length > 0;
     const [rounds, setRounds] = useState(initialRounds);
     const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
     const [roundStatuses, setRoundStatuses] = useState(new Array(initialRounds.length).fill('unplayed'));
     const [hasGuessed, setHasGuessed] = useState(false);
     const [isEndlessGameOver, setIsEndlessGameOver] = useState(false);
+    const [startTime] = useState(() => Date.now());
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
     // Loading states — skip initial load if rounds were passed in from props
     const [isInitialLoading, setIsInitialLoading] = useState(!hasInitialRounds);
     const [loadError, setLoadError] = useState(null);
     const [isPrefetching, setIsPrefetching] = useState(false);
     const isPrefetchingRef = useRef(false);
+    const isGameOver = isEndless
+        ? isEndlessGameOver
+        : currentRoundIndex >= TOTAL_ROUNDS;
+    useEffect(() => {
+        if (isInitialLoading || isGameOver)
+            return;
+        const timer = setInterval(() => {
+            setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [isInitialLoading, isGameOver, startTime]);
+    useEffect(() => {
+        if (isGameOver && !isEndless) {
+            const correctCount = roundStatuses.filter((s) => s === 'correct').length;
+            const today = new Date().toDateString();
+            if (isDaily) {
+                const existing = localStorage.getItem(`upvotedle_daily_result_${today}`);
+                if (!existing) {
+                    localStorage.setItem(`upvotedle_daily_result_${today}`, JSON.stringify({
+                        correct: correctCount,
+                        total: TOTAL_ROUNDS,
+                        time: formatTime(elapsedTime),
+                    }));
+                }
+            }
+            // Submit score to Redis and fetch leaderboard
+            const submitAndFetch = async () => {
+                setIsLoadingLeaderboard(true);
+                try {
+                    // Submit score
+                    await fetch(`${getApiBase()}/api/leaderboard/submit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ score: correctCount, time: elapsedTime, isDaily }),
+                    });
+                    // Fetch leaderboard
+                    const res = await fetch(`${getApiBase()}/api/leaderboard?isDaily=${isDaily}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setLeaderboard(data);
+                    }
+                }
+                catch (e) {
+                    console.error('[leaderboard] Failed:', e);
+                }
+                finally {
+                    setIsLoadingLeaderboard(false);
+                }
+            };
+            void submitAndFetch();
+        }
+    }, [isGameOver, isDaily, isEndless, roundStatuses, elapsedTime]);
     useEffect(() => {
         if (hasInitialRounds)
             return; // skip — game.tsx already fetched them
@@ -126,15 +190,12 @@ export default function GameBoard({ rounds: initialRounds = [], subreddits = [],
     if (loadError) {
         return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("h2", { className: styles.gameOverTitle, children: "Failed to Load" }), _jsx("p", { className: styles.gameOverScore, children: loadError }), _jsx("button", { onClick: onPlayAgain, className: styles.gameOverButton, children: "Try Again" })] }));
     }
-    const isGameOver = isEndless
-        ? isEndlessGameOver
-        : currentRoundIndex >= TOTAL_ROUNDS;
     if (isGameOver) {
         if (isEndless) {
-            return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("h2", { className: styles.gameOverTitle, children: "Endless Game Over!" }), _jsxs("p", { className: styles.gameOverScore, children: ["You completed ", currentRoundIndex, " rounds before failing!"] }), seed !== null && seed !== undefined && (_jsxs("p", { className: styles.gameOverSeed, children: ["Seed: ", _jsx("strong", { className: styles.highlightSeed, children: seed })] })), _jsx("button", { onClick: onPlayAgain, className: styles.gameOverButton, children: "Play Again" })] }));
+            return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("h2", { className: styles.gameOverTitle, children: "Endless Game Over!" }), _jsxs("p", { className: styles.gameOverScore, children: ["You completed ", currentRoundIndex, " rounds before failing!"] }), _jsxs("p", { className: styles.gameOverScore, style: { marginTop: '0.25rem' }, children: ["Time Played: ", _jsx("strong", { children: formatTime(elapsedTime) })] }), seed !== null && seed !== undefined && (_jsxs("p", { className: styles.gameOverSeed, children: ["Seed: ", _jsx("strong", { className: styles.highlightSeed, children: seed })] })), _jsx("button", { onClick: onPlayAgain, className: styles.gameOverButton, children: "Play Again" })] }));
         }
         const correctCount = roundStatuses.filter((s) => s === 'correct').length;
-        return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("h2", { className: styles.gameOverTitle, children: "Game Over!" }), _jsxs("p", { className: styles.gameOverScore, children: ["You got ", correctCount, " out of ", TOTAL_ROUNDS, " correct."] }), seed !== null && seed !== undefined && (_jsxs("p", { className: styles.gameOverSeed, children: ["Seed: ", _jsx("strong", { className: styles.highlightSeed, children: seed })] })), _jsx("button", { onClick: onPlayAgain, className: styles.gameOverButton, children: "Play Again" })] }));
+        return (_jsxs("div", { className: styles.pageWrapper, children: [_jsx("img", { src: otherGuy, alt: "illustration left", className: `${styles.illustration} ${styles.leftIllustration}` }), _jsxs("div", { className: styles.gameOverContainer, children: [_jsx("h2", { className: styles.gameOverTitle, children: "Game Over!" }), _jsxs("p", { className: styles.gameOverScore, style: { marginBottom: '8px' }, children: ["You got ", correctCount, " out of ", TOTAL_ROUNDS, " correct."] }), _jsxs("p", { className: styles.gameOverScore, style: { marginTop: '0.25rem', marginBottom: '24px' }, children: ["Time: ", _jsx("strong", { children: formatTime(elapsedTime) })] }), (isDaily || !isEndless) && (_jsxs("div", { className: styles.leaderboardSection, children: [_jsx("h3", { className: styles.leaderboardTitle, children: isDaily ? "Today's Leaderboard" : "Custom Leaderboard" }), isLoadingLeaderboard ? (_jsx("p", { className: styles.leaderboardStatus, children: "Loading leaderboard..." })) : leaderboard.length === 0 ? (_jsx("p", { className: styles.leaderboardStatus, children: "No entries yet." })) : (_jsx("div", { className: styles.leaderboardTableWrapper, children: _jsxs("table", { className: styles.leaderboardTable, children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsx("th", { children: "Rank" }), _jsx("th", { children: "User" }), _jsx("th", { children: "Score" }), _jsx("th", { children: "Time" })] }) }), _jsx("tbody", { children: leaderboard.map((entry, idx) => (_jsxs("tr", { children: [_jsxs("td", { className: styles.leaderboardRank, children: ["#", idx + 1] }), _jsx("td", { className: styles.leaderboardUser, children: entry.username }), _jsx("td", { children: entry.points }), _jsx("td", { children: formatTime(entry.time) })] }, idx))) })] }) }))] })), seed !== null && seed !== undefined && (_jsxs("p", { className: styles.gameOverSeed, children: ["Seed: ", _jsx("strong", { className: styles.highlightSeed, children: seed })] })), _jsx("button", { onClick: onPlayAgain, className: styles.gameOverButton, style: { marginTop: '24px' }, children: "Play Again" })] }), _jsx("img", { src: someGuy, alt: "illustration right", className: `${styles.illustration} ${styles.rightIllustration}` })] }));
     }
     if (rounds.length === 0 || currentRoundIndex >= rounds.length) {
         return (_jsxs("div", { className: styles.gameOverContainer, children: [_jsx("div", { className: "w-16 h-16 border-4 border-[#ff4500] border-t-transparent rounded-full animate-spin" }), _jsx("p", { className: "mt-4 text-xl text-gray-300", children: "Loading next round..." })] }));

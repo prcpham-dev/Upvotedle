@@ -28,4 +28,5 @@ export interface GameBoardProps {
     isEndless?: boolean;
     subreddits?: string[];
     seed?: number | null;
+    isDaily?: boolean;
 }

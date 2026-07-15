@@ -33,3 +33,4 @@ export interface GameBoardProps {
   seed?: number | null;
   isDaily?: boolean;
 }
+
