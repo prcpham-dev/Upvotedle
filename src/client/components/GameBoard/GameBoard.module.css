@@ -443,40 +443,91 @@
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  gap: 32px;
+  gap: 16px; /* slightly smaller default gap for mobile/medium */
   padding: 0 16px;
   box-sizing: border-box;
   animation: fadeIn 0.3s ease-out;
+  position: relative; /* relative parent for absolute mobile illustrations */
+  min-height: 80vh; /* ensure enough height on mobile for positioning */
 }
 
 .illustration {
-  width: 180px;
+  width: 112px; /* 1.5x bigger on mobile */
   max-height: 380px;
   object-fit: contain;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
-  transition: transform 0.3s ease;
-  display: none; /* Hide on mobile/smaller devices */
-}
-
-@media (min-width: 768px) {
-  .illustration {
-    display: block;
-    width: 115px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .illustration {
-    width: 180px;
-  }
+  transition: all 0.3s ease;
+  position: absolute;
+  pointer-events: none;
 }
 
 .leftIllustration {
+  top: -20px; /* shifted even higher up */
+  left: 0px; /* moved further left */
   animation: floatLeft 6s ease-in-out infinite;
+  z-index: 10; /* ensure it's above text */
 }
 
 .rightIllustration {
+  bottom: -20px; /* shifted down to prevent covering the button */
+  right: 10px;
   animation: floatRight 6s ease-in-out infinite;
+}
+
+@media (min-width: 600px) {
+  .pageWrapper {
+    gap: 16px;
+    min-height: auto;
+    align-items: center;
+  }
+  .illustration {
+    position: static;
+    display: block;
+    width: 165px; /* reduced by ~15% */
+    pointer-events: auto;
+    z-index: auto;
+    flex-shrink: 0; /* prevent them from getting squished in narrow windows */
+  }
+  /* Stagger: left floats higher, right floats lower */
+  .leftIllustration {
+    margin-bottom: 100px;
+    margin-right: -30px; /* added overlap so they don't force wide width */
+  }
+  .rightIllustration {
+    margin-top: 20px;
+    margin-left: -30px; /* added overlap so they don't force wide width */
+  }
+}
+
+@media (min-width: 900px) {
+  .pageWrapper {
+    gap: 32px;
+  }
+  .illustration {
+    width: 180px;
+  }
+  .leftIllustration {
+    margin-bottom: 80px;
+  }
+  .rightIllustration {
+    margin-top: 80px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .pageWrapper {
+    gap: 64px;
+    max-width: 1400px;
+  }
+  .illustration {
+    width: 480px; /* doubled for fullscreen */
+  }
+  .leftIllustration {
+    margin-bottom: 100px;
+  }
+  .rightIllustration {
+    margin-top: 100px;
+  }
 }
 
 @keyframes floatLeft {
