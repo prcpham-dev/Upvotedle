@@ -21,6 +21,7 @@ function buildCandidateList(subreddit: string, seed: number): string[] {
   return pickSeededSample(pool, pool.length, seed);
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function App() {
   const [gameState, setGameState] = useState<'setup' | 'loading' | 'playing' | 'error'>('setup');
   const [rounds, setRounds] = useState<RoundData[]>([]);

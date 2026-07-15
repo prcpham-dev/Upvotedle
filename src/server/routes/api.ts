@@ -156,7 +156,7 @@ api.get('/leaderboard', async (c) => {
         list = JSON.parse(cached);
       }
     } catch {
-      
+      // ignore cache miss/error
     }
 
     return c.json(list);

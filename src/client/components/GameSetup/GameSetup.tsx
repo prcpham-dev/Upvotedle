@@ -55,6 +55,7 @@ export default function GameSetup({
     const saved = localStorage.getItem(`upvotedle_daily_result_${today}`);
     if (saved) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDailyResult(JSON.parse(saved));
       } catch (e) {
         console.error(e);

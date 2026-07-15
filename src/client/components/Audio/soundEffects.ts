@@ -38,6 +38,7 @@ function dataUrlToArrayBuffer(dataUrl: string): { arrayBuffer: ArrayBuffer; mime
 
 function getAudioContext() {
     if (audioCtx) return audioCtx;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
     if (!Ctor) return null;
     audioCtx = new Ctor();
@@ -77,7 +78,7 @@ export async function preloadSound(soundFile: string) {
         buffers.set(soundFile, decoded);
     } catch (err) {
         // Non-fatal — fallback will be used when playing
-        // eslint-disable-next-line no-console
+         
         console.warn('Failed to preload sound', soundFile, err);
     }
 }
@@ -105,7 +106,7 @@ export function playSound(soundFile: string, volume = 1) {
                 return;
             } catch (err) {
                 // fall through to HTMLAudio fallback
-                // eslint-disable-next-line no-console
+                 
                 console.warn('WebAudio play failed, falling back to HTMLAudio', err);
             }
         }
@@ -135,7 +136,7 @@ export function playSound(soundFile: string, volume = 1) {
         a.currentTime = 0;
         void a.play().catch(() => {});
     } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.error('Audio playback failed:', err);
     }
 }

@@ -1,7 +1,7 @@
 .container {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   padding: 24px 22px 22px;
   margin: 0 auto;
   background-color: rgba(22, 22, 23, 0.75);
@@ -13,7 +13,6 @@
   text-align: center;
   box-sizing: border-box;
   flex-shrink: 0;
-  z-index: 5;
 }
 
 .settingsButton {
@@ -265,11 +264,11 @@
   transition: transform 0.25s ease;
 }
 
-.toggleInput:checked + .toggleSlider {
+.toggleInput:checked+.toggleSlider {
   background-color: var(--color-correct);
 }
 
-.toggleInput:checked + .toggleSlider::before {
+.toggleInput:checked+.toggleSlider::before {
   transform: translateX(16px);
 }
 
@@ -436,8 +435,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .leaderboardTableWrapper {
@@ -453,15 +459,19 @@
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  gap: 16px; /* slightly smaller default gap for mobile/medium */
+  gap: 16px;
+  /* slightly smaller default gap for mobile/medium */
   padding: 0 16px;
   box-sizing: border-box;
-  position: relative; /* relative parent for absolute mobile illustrations */
-  min-height: 80vh; /* ensure enough height on mobile for positioning */
+  position: relative;
+  /* relative parent for absolute mobile illustrations */
+  min-height: 80vh;
+  /* ensure enough height on mobile for positioning */
 }
 
 .illustration {
-  width: 97px; /* 1.5x bigger on mobile */
+  width: 97px;
+  /* 1.5x bigger on mobile */
   max-height: 380px;
   object-fit: contain;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
@@ -477,7 +487,8 @@
 }
 
 .rightIllustration {
-  bottom: -20px; /* shifted down to prevent covering the button */
+  bottom: -20px;
+  /* shifted down to prevent covering the button */
   right: 10px;
   animation: floatRight 6s ease-in-out infinite;
 }
@@ -488,6 +499,7 @@
     min-height: auto;
     align-items: center;
   }
+
   .illustration {
     position: static;
     display: block;
@@ -501,6 +513,7 @@
     margin-bottom: 100px;
     margin-right: -30px;
   }
+
   .rightIllustration {
     margin-top: 20px;
     margin-left: -30px;
@@ -511,12 +524,15 @@
   .pageWrapper {
     gap: 32px;
   }
+
   .illustration {
     width: 180px;
   }
+
   .leftIllustration {
     margin-bottom: 80px;
   }
+
   .rightIllustration {
     margin-top: 80px;
   }
@@ -527,12 +543,15 @@
     gap: 64px;
     max-width: 1400px;
   }
+
   .illustration {
     width: 480px;
   }
+
   .leftIllustration {
     margin-bottom: 100px;
   }
+
   .rightIllustration {
     margin-top: 100px;
   }
@@ -554,11 +573,25 @@
 }
 
 @keyframes floatLeft {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-10px) rotate(2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
 }
 
 @keyframes floatRight {
-  0%, 100% { transform: translateY(0) rotate(2deg); }
-  50% { transform: translateY(-10px) rotate(-2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(2deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
 }
