@@ -4,8 +4,11 @@ import type { RoundData, GameBoardProps } from '../../types/types';
 import PostCard from '../PostCard/PostCard';
 import otherGuy from '../../../../public/other_guy.png';
 import someGuy from '../../../../public/some_guy.png';
+import otherGuy from '../../../../public/other_guy.png';
+import someGuy from '../../../../public/some_guy.png';
 import RoundIndicator, { type RoundStatus } from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
+import { getApiBase } from '../../../shared/lib/api';
 import { getApiBase } from '../../../shared/lib/api';
 
 const TOTAL_ROUNDS = 10;
@@ -25,12 +28,19 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function GameBoard({
   rounds: initialRounds = [],
   subreddits = [],
   seed = null,
   isEndless = false,
   onPlayAgain,
+  isDaily = false,
   isDaily = false,
 }: GameBoardProps) {
   const hasInitialRounds = initialRounds.length > 0;
@@ -49,11 +59,78 @@ export default function GameBoard({
   const [leaderboard, setLeaderboard] = useState<{ username: string; points: number; time: number }[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
+  const [startTime] = useState(() => Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  const [leaderboard, setLeaderboard] = useState<{ username: string; points: number; time: number }[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
   // Loading states — skip initial load if rounds were passed in from props
   const [isInitialLoading, setIsInitialLoading] = useState(!hasInitialRounds);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = useState(false);
   const isPrefetchingRef = useRef(false);
+
+  const isGameOver = isEndless
+    ? isEndlessGameOver
+    : currentRoundIndex >= TOTAL_ROUNDS;
+
+  useEffect(() => {
+    if (isInitialLoading || isGameOver) return;
+
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isInitialLoading, isGameOver, startTime]);
+
+  useEffect(() => {
+    if (isGameOver && !isEndless) {
+      const correctCount = roundStatuses.filter((s) => s === 'correct').length;
+      const today = new Date().toDateString();
+
+      if (isDaily) {
+        const existing = localStorage.getItem(`upvotedle_daily_result_${today}`);
+        if (!existing) {
+          localStorage.setItem(
+            `upvotedle_daily_result_${today}`,
+            JSON.stringify({
+              correct: correctCount,
+              total: TOTAL_ROUNDS,
+              time: formatTime(elapsedTime),
+            })
+          );
+        }
+      }
+
+      // Submit score to Redis and fetch leaderboard
+      const submitAndFetch = async () => {
+        setIsLoadingLeaderboard(true);
+        try {
+          // Submit score
+          await fetch(`${getApiBase()}/api/leaderboard/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ score: correctCount, time: elapsedTime, isDaily }),
+          });
+
+          // Fetch leaderboard
+          const res = await fetch(`${getApiBase()}/api/leaderboard?isDaily=${isDaily}`);
+          if (res.ok) {
+            const data = await res.json() as { username: string; points: number; time: number }[];
+            setLeaderboard(data);
+          }
+        } catch (e) {
+          console.error('[leaderboard] Failed:', e);
+        } finally {
+          setIsLoadingLeaderboard(false);
+        }
+      };
+
+      void submitAndFetch();
+    }
+  }, [isGameOver, isDaily, isEndless, roundStatuses, elapsedTime]);
 
   const isGameOver = isEndless
     ? isEndlessGameOver
@@ -250,6 +327,9 @@ export default function GameBoard({
           <p className={styles.gameOverScore} style={{ marginTop: '0.25rem' }}>
             Time Played: <strong>{formatTime(elapsedTime)}</strong>
           </p>
+          <p className={styles.gameOverScore} style={{ marginTop: '0.25rem' }}>
+            Time Played: <strong>{formatTime(elapsedTime)}</strong>
+          </p>
           {seed !== null && seed !== undefined && (
             <p className={styles.gameOverSeed}>
               Seed: <strong className={styles.highlightSeed}>{seed}</strong>
@@ -365,6 +445,11 @@ export default function GameBoard({
 
   return (
     <div className={`fixed inset-0 overflow-y-auto overflow-x-hidden md:overflow-hidden ${styles.boardRoot}`}>
+      {/* Mobile-only floating timer badge */}
+      <div className={styles.mobileTimerBadge}>
+        {formatTime(elapsedTime)}
+      </div>
+
       {/* Mobile-only floating timer badge */}
       <div className={styles.mobileTimerBadge}>
         {formatTime(elapsedTime)}

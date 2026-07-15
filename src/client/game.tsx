@@ -34,6 +34,7 @@ function App() {
   const [subreddits, setSubreddits] = useState<string[]>([]);
 
   const handleStartDaily = async () => {
+    localStorage.setItem('redditdle_game_mode', 'daily');
     setGameState('loading');
     setErrorMessage('');
     setSubreddits([]);
@@ -63,6 +64,7 @@ function App() {
     customSubreddit?: string,
     customSeed?: string,
   ) => {
+    localStorage.setItem('redditdle_game_mode', 'custom');
     const subreddit = customSubreddit ?? customConfig.subreddit;
     const seedStr = customSeed ?? customConfig.seed;
 
@@ -155,6 +157,7 @@ function App() {
           isEndless={false}
           subreddits={subreddits}
           seed={currentRunSeed}
+          isDaily={localStorage.getItem('redditdle_game_mode') === 'daily'}
         />
       )}
     </main>
