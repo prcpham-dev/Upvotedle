@@ -435,3 +435,54 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.pageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  gap: 32px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.illustration {
+  width: 180px;
+  max-height: 380px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+  transition: transform 0.3s ease;
+  display: none; /* Hide on mobile/smaller devices */
+}
+
+@media (min-width: 1024px) {
+  .illustration {
+    display: block;
+  }
+}
+
+.leftIllustration {
+  animation: floatLeft 6s ease-in-out infinite;
+}
+
+.rightIllustration {
+  animation: floatRight 6s ease-in-out infinite;
+}
+
+@keyframes floatLeft {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes floatRight {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-10px) rotate(-2deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

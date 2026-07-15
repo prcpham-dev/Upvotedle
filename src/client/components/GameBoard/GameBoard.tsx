@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './GameBoard.module.css';
 import type { RoundData, GameBoardProps } from '../../types/types';
 import PostCard from '../PostCard/PostCard';
+import otherGuy from '../../../../public/other_guy.png';
+import someGuy from '../../../../public/some_guy.png';
 import RoundIndicator, { type RoundStatus } from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
 import { getApiBase } from '../../../shared/lib/api';
@@ -262,59 +264,73 @@ export default function GameBoard({
 
     const correctCount = roundStatuses.filter((s) => s === 'correct').length;
     return (
-      <div className={styles.gameOverContainer}>
-        <h2 className={styles.gameOverTitle}>Game Over!</h2>
-        <p className={styles.gameOverScore} style={{ marginBottom: '8px' }}>
-          You got {correctCount} out of {TOTAL_ROUNDS} correct.
-        </p>
-        <p className={styles.gameOverScore} style={{ marginTop: '0.25rem', marginBottom: '24px' }}>
-          Time: <strong>{formatTime(elapsedTime)}</strong>
-        </p>
+      <div className={styles.pageWrapper}>
+        <img
+          src={otherGuy}
+          alt="illustration left"
+          className={`${styles.illustration} ${styles.leftIllustration}`}
+        />
 
-        {(isDaily || !isEndless) && (
-          <div className={styles.leaderboardSection}>
-            <h3 className={styles.leaderboardTitle}>
-              {isDaily ? "Today's Leaderboard" : "Custom Leaderboard"}
-            </h3>
-            {isLoadingLeaderboard ? (
-              <p className={styles.leaderboardStatus}>Loading leaderboard...</p>
-            ) : leaderboard.length === 0 ? (
-              <p className={styles.leaderboardStatus}>No entries yet.</p>
-            ) : (
-              <div className={styles.leaderboardTableWrapper}>
-                <table className={styles.leaderboardTable}>
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>User</th>
-                      <th>Score</th>
-                      <th>Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaderboard.map((entry, idx) => (
-                      <tr key={idx}>
-                        <td className={styles.leaderboardRank}>#{idx + 1}</td>
-                        <td className={styles.leaderboardUser}>{entry.username}</td>
-                        <td>{entry.points}</td>
-                        <td>{formatTime(entry.time)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {seed !== null && seed !== undefined && (
-          <p className={styles.gameOverSeed}>
-            Seed: <strong className={styles.highlightSeed}>{seed}</strong>
+        <div className={styles.gameOverContainer}>
+          <h2 className={styles.gameOverTitle}>Game Over!</h2>
+          <p className={styles.gameOverScore} style={{ marginBottom: '8px' }}>
+            You got {correctCount} out of {TOTAL_ROUNDS} correct.
           </p>
-        )}
-        <button onClick={onPlayAgain} className={styles.gameOverButton} style={{ marginTop: '24px' }}>
-          Play Again
-        </button>
+          <p className={styles.gameOverScore} style={{ marginTop: '0.25rem', marginBottom: '24px' }}>
+            Time: <strong>{formatTime(elapsedTime)}</strong>
+          </p>
+
+          {(isDaily || !isEndless) && (
+            <div className={styles.leaderboardSection}>
+              <h3 className={styles.leaderboardTitle}>
+                {isDaily ? "Today's Leaderboard" : "Custom Leaderboard"}
+              </h3>
+              {isLoadingLeaderboard ? (
+                <p className={styles.leaderboardStatus}>Loading leaderboard...</p>
+              ) : leaderboard.length === 0 ? (
+                <p className={styles.leaderboardStatus}>No entries yet.</p>
+              ) : (
+                <div className={styles.leaderboardTableWrapper}>
+                  <table className={styles.leaderboardTable}>
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>Score</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboard.map((entry, idx) => (
+                        <tr key={idx}>
+                          <td className={styles.leaderboardRank}>#{idx + 1}</td>
+                          <td className={styles.leaderboardUser}>{entry.username}</td>
+                          <td>{entry.points}</td>
+                          <td>{formatTime(entry.time)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {seed !== null && seed !== undefined && (
+            <p className={styles.gameOverSeed}>
+              Seed: <strong className={styles.highlightSeed}>{seed}</strong>
+            </p>
+          )}
+          <button onClick={onPlayAgain} className={styles.gameOverButton} style={{ marginTop: '24px' }}>
+            Play Again
+          </button>
+        </div>
+
+        <img
+          src={someGuy}
+          alt="illustration right"
+          className={`${styles.illustration} ${styles.rightIllustration}`}
+        />
       </div>
     );
   }

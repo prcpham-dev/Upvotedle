@@ -1,6 +1,9 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "upvotedle-game",
+  "marketingAssets": {
+    "icon": "public/logo.png"
+  },
   "post": {
     "dir": "dist/client",
     "entrypoints": {
