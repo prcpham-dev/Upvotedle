@@ -7,6 +7,7 @@ import someGuy from '../../../../public/some_guy.png';
 import RoundIndicator, { type RoundStatus } from '../RoundIndicator/RoundIndicator';
 import { fetchRoundBatch } from '../../lib/roundFetcher';
 import { getApiBase } from '../../../shared/lib/api';
+import { playSound } from '../Audio/soundEffects'
 
 const TOTAL_ROUNDS = 10;
 
@@ -192,6 +193,8 @@ export default function GameBoard({
     const selectedPost = selected === 'A' ? currentRound.postA : currentRound.postB;
     const otherPost = selected === 'A' ? currentRound.postB : currentRound.postA;
     const isCorrect = selectedPost.upvotes >= otherPost.upvotes;
+
+    playSound(isCorrect ? 'Correct.mp3' : 'Wrong.mp3');
 
     setRoundStatuses((prev) => {
       const next = [...prev];

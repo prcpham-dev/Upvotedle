@@ -139,4 +139,6 @@ export function playSound(soundFile, volume = 1) {
 }
 // Preload common click sound so short sounds play with low latency.
 void preloadSound('ButtonClick.mp3');
+void preloadSound('Correct.mp3');
+void preloadSound('Wrong.mp3');
 //# sourceMappingURL=soundEffects.js.map
