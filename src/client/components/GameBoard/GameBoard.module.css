@@ -458,9 +458,16 @@
   display: none; /* Hide on mobile/smaller devices */
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .illustration {
     display: block;
+    width: 115px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .illustration {
+    width: 180px;
   }
 }
 
